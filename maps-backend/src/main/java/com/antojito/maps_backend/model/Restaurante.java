@@ -10,6 +10,7 @@ public class Restaurante {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_restaurante")
     private Long id;
 
     private String nombre;
@@ -19,6 +20,6 @@ public class Restaurante {
     private Double lat;
     private Double lng;
     
-    // Podemos agregar la imagenUrl para que no sea siempre el logo de panchita
+    // Podemos agregar la imagenUrl
     private String imagenUrl;
 }
