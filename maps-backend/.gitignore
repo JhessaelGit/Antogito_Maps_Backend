@@ -36,3 +36,7 @@ build/
 .env
 .env.*
 !.env.example
+
+# Runtime logs
+registro.log
+registro.log.*

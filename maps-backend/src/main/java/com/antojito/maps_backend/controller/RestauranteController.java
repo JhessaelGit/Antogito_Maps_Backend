@@ -1,29 +1,46 @@
 package com.antojito.maps_backend.controller;
 
-import com.antojito.maps_backend.model.Restaurante;
+import com.antojito.maps_backend.dto.RestauranteCreateRequest;
+import com.antojito.maps_backend.dto.RestauranteResponse;
 import com.antojito.maps_backend.service.RestauranteService;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import java.net.URI;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+import org.springframework.http.ResponseEntity;
 
 @RestController
-@RequestMapping("/api/restaurantes")
-@CrossOrigin(origins = "*") // Para que Angular pueda hacer peticiones
+@RequestMapping({"/api/v1/restaurantes"})
+@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
 public class RestauranteController {
 
-    @Autowired
-    private RestauranteService service;
+    private final RestauranteService restauranteService;
 
-    // GET: http://localhost:8080/api/restaurantes (Lo usará tu frontend)
-    @GetMapping
-    public List<Restaurante> listarRestaurantes() {
-        return service.obtenerTodos();
+    public RestauranteController(RestauranteService restauranteService) {
+        this.restauranteService = restauranteService;
     }
 
-    // POST: http://localhost:8080/api/restaurantes (Para agregar nuevos)
+    @GetMapping
+    public ResponseEntity<List<RestauranteResponse>> listarRestaurantes() {
+        return ResponseEntity.ok(restauranteService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<RestauranteResponse> obtenerPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(restauranteService.findById(id));
+    }
+
     @PostMapping
-    public Restaurante crearRestaurante(@RequestBody Restaurante restaurante) {
-        return service.guardarRestaurante(restaurante);
+    public ResponseEntity<RestauranteResponse> crearRestaurante(
+            @Valid @RequestBody RestauranteCreateRequest request) {
+        RestauranteResponse created = restauranteService.create(request);
+        URI location = URI.create("/api/v1/restaurantes/" + created.getId());
+        return ResponseEntity.created(location).body(created);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminarRestaurante(@PathVariable Long id) {
+        restauranteService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
