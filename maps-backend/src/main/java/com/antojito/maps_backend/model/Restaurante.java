@@ -1,43 +1,67 @@
 package com.antojito.maps_backend.model;
 
-import jakarta.persistence.*;
-import lombok.Data;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "restaurantes")
-@Data 
+@Table(name = "restaurant")
+@Getter
+@Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Schema(description = "Entidad restaurant")
 public class Restaurante {
-    
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_restaurante")
-    private Long id;
 
-    private String nombre;
-    private String correo;
-    private String contraseña;
-    
-    // Columnas de tipo numeric/float
-    private Double latitud;
-    private Double longitud;
-    
-    // Datos de suscripción
-    @Column(name = "plan_suscripcion")
-    private String planSuscripcion;
-    
-    @Column(name = "fecha_vencimiento_plan")
-    private LocalDate fechaVencimientoPlan;
-    
-    @Column(name = "estado_bloqueo")
-    private Boolean estadoBloqueo;
-    
-    private String descripcion;
-    
-    @Column(name = "imagen_url")
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "uuid", nullable = false, updatable = false)
+    private UUID uuid;
+
+    @Column(name = "name", nullable = false, length = 120)
+    private String name;
+
+    @Column(name = "latitude", nullable = false)
+    private Double latitude;
+
+    @Column(name = "longitude", nullable = false)
+    private Double longitude;
+
+    @Column(name = "plan_suscription", length = 60)
+    private String planSuscription;
+
+    @Column(name = "plan_expiration_date")
+    private LocalDate planExpirationDate;
+
+    @Column(name = "is_blocked", nullable = false)
+    private Boolean isBlocked;
+
+    @Column(name = "description", length = 500)
+    private String description;
+
+    @Column(name = "image_url", length = 500)
     private String imagenUrl;
 
-    // Coordenadas duplicadas (lat/lng) según tu DB
-    private Double lat;
-    private Double lng;
+    @Column(name = "category", length = 80)
+    private String category;
+
+    @PrePersist
+    public void applyDefaults() {
+        if (isBlocked == null) {
+            isBlocked = Boolean.FALSE;
+        }
+    }
 }
