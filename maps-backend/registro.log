@@ -1,2 +1,9 @@
-RESTAURANTE_REGISTRO | uuid=8194d378-a95e-4d0a-bc01-a5ea0ef1f5fb name=Temporal QA | fecha=2026-04-10T23:06:32.864904
-OWNER_REGISTRY | restaurantUuid=8194d378-a95e-4d0a-bc01-a5ea0ef1f5fb mail=owner.temporal@antojitosmaps.com | fecha=2026-04-10T23:06:35.288675400
+OWNER_REGISTRO | mail=owner.sabor@antojitosmaps.com | fecha=2026-04-11T00:00:31.217163400
+OWNER_REGISTRO | mail=owner.donforno@antojitosmaps.com | fecha=2026-04-11T00:00:32.308770300
+OWNER_REGISTRO | mail=owner.sushi@antojitosmaps.com | fecha=2026-04-11T00:00:33.331783100
+RESTAURANTE_REGISTRO | uuid=703aa3d5-4a89-4ee5-bda6-ef92f3324763 name=Sabor Valluno | fecha=2026-04-11T00:02:14.197265200
+OWNER_REGISTRY | restaurantUuid=703aa3d5-4a89-4ee5-bda6-ef92f3324763 mail=owner.sabor@antojitosmaps.com | fecha=2026-04-11T00:02:14.198201100
+RESTAURANTE_REGISTRO | uuid=779e1dc1-e47a-4e6f-a106-efd09ed60128 name=Pizzeria Don Forno | fecha=2026-04-11T00:02:15.418642700
+OWNER_REGISTRY | restaurantUuid=779e1dc1-e47a-4e6f-a106-efd09ed60128 mail=owner.donforno@antojitosmaps.com | fecha=2026-04-11T00:02:15.419470800
+RESTAURANTE_REGISTRO | uuid=548bd4c1-09ab-471b-ab8a-1f151d27953d name=Sushi Andino | fecha=2026-04-11T00:02:16.643792400
+OWNER_REGISTRY | restaurantUuid=548bd4c1-09ab-471b-ab8a-1f151d27953d mail=owner.sushi@antojitosmaps.com | fecha=2026-04-11T00:02:16.644792300

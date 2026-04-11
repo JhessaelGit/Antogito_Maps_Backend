@@ -3,9 +3,7 @@ package com.antojito.maps_backend.dto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,12 +15,8 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(description = "Payload para registrar owner en un restaurante")
+@Schema(description = "Payload para registrar un owner")
 public class RestaurantRegistryRequest {
-
-    @NotNull(message = "El id del restaurante es obligatorio")
-    @Schema(description = "UUID del restaurante", example = "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9")
-    private UUID restaurantId;
 
     @NotBlank(message = "El mail es obligatorio")
     @Email(message = "El mail no tiene formato valido")

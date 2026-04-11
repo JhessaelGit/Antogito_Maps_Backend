@@ -1,5 +1,6 @@
 drop table if exists promotions cascade;
 drop table if exists owner_restaurant cascade;
+drop table if exists owner_account cascade;
 drop table if exists admin cascade;
 drop table if exists restaurant cascade;
 drop table if exists restaurantes cascade;
@@ -23,11 +24,20 @@ create table admin (
     password varchar(255) not null
 );
 
+create table owner_account (
+    uuid uuid primary key,
+    mail varchar(150) not null unique,
+    password varchar(255) not null
+);
+
 create table owner_restaurant (
+    id_owner uuid not null,
     id_restaurant uuid not null,
-    mail varchar(150) not null,
-    password varchar(255) not null,
-    primary key (id_restaurant, mail),
+    primary key (id_owner, id_restaurant),
+    constraint fk_owner_restaurant_owner
+        foreign key (id_owner)
+            references owner_account (uuid)
+            on delete cascade,
     constraint fk_owner_restaurant_restaurant
         foreign key (id_restaurant)
             references restaurant (uuid)

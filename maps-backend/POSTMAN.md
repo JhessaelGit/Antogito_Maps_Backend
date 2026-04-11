@@ -37,12 +37,13 @@ Response 200 ejemplo:
 ### 2) POST /restaurant/create
 
 Descripcion:
-Crea un restaurante.
+Crea un restaurante asociado a un owner registrado.
 
 Request body ejemplo:
 
 ```json
 {
+  "ownerMail": "owner.nuevo@antojitosmaps.com",
   "name": "Nuevo Antojito",
   "latitude": -17.4,
   "longitude": -66.1,
@@ -69,6 +70,18 @@ Response 201 ejemplo:
   "latitude": -17.4,
   "longitude": -66.1,
   "category": "Comida Rapida"
+}
+```
+
+Response 404 ejemplo (owner no existe):
+
+```json
+{
+  "timestamp": "2026-04-10T22:11:24.575Z",
+  "status": 404,
+  "error": "Not Found",
+  "message": "No existe owner con mail <ownerMail>",
+  "path": "/restaurant/create"
 }
 ```
 
@@ -163,7 +176,7 @@ Response 503 ejemplo:
 ### 7) POST /restaurant/login
 
 Descripcion:
-Valida credenciales en owner_restaurant.
+Valida credenciales en owner_account.
 
 Request body ejemplo:
 
@@ -197,13 +210,12 @@ Response 401 ejemplo:
 ### 8) POST /restaurant/registry
 
 Descripcion:
-Registra un owner para un restaurante.
+Registra un owner primero (sin restaurante).
 
 Request body ejemplo:
 
 ```json
 {
-  "restaurantId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
   "mail": "owner.nuevo@antojitosmaps.com",
   "password": "OwnerNuevo2026!"
 }
@@ -217,14 +229,14 @@ Response 201 ejemplo:
 }
 ```
 
-Response 404 ejemplo:
+Response 400 ejemplo (owner ya existe):
 
 ```json
 {
   "timestamp": "2026-04-10T22:11:24.575Z",
-  "status": 404,
-  "error": "Not Found",
-  "message": "No existe restaurante con uuid <restaurantId>",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Ya existe un owner con ese mail",
   "path": "/restaurant/registry"
 }
 ```

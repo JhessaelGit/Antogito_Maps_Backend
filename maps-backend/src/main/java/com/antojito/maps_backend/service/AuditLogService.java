@@ -23,6 +23,10 @@ public class AuditLogService {
         writeEvent("LOGOUT", "email=" + email);
     }
 
+    public void logOwnerRegistration(String mail) {
+        writeEvent("OWNER_REGISTRO", "mail=" + mail);
+    }
+
     public void logOwnerRegistry(UUID restaurantUuid, String mail) {
         writeEvent("OWNER_REGISTRY", "restaurantUuid=" + restaurantUuid + " mail=" + mail);
     }

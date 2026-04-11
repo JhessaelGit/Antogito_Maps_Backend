@@ -62,13 +62,14 @@ public class RestauranteController {
     }
 
     @PostMapping("/create")
-    @Operation(summary = "Crear restaurante", description = "Registra un nuevo restaurante")
+    @Operation(summary = "Crear restaurante", description = "Registra un nuevo restaurante asociado a un owner existente")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "201",
                 description = "Restaurante creado correctamente",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = RestauranteResponse.class))),
-        @ApiResponse(responseCode = "400", description = "Datos invalidos o violacion de restricciones")
+        @ApiResponse(responseCode = "400", description = "Datos invalidos o violacion de restricciones"),
+        @ApiResponse(responseCode = "404", description = "No existe owner con ese mail")
     })
     public ResponseEntity<RestauranteResponse> crearRestaurante(
             @Valid @RequestBody RestauranteCreateRequest request) {

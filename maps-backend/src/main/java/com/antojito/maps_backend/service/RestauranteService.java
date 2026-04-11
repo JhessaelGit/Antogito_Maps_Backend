@@ -8,6 +8,8 @@ import com.antojito.maps_backend.repository.RestauranteRepository;
 import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,7 @@ public class RestauranteService {
 
     private final RestauranteRepository repository;
     private final AuditLogService auditLogService;
+    private final JdbcTemplate jdbcTemplate;
 
     @Transactional(readOnly = true)
     public List<RestauranteResponse> findAll() {
@@ -32,8 +35,27 @@ public class RestauranteService {
 
     @Transactional
     public RestauranteResponse create(RestauranteCreateRequest request) {
-        Restaurante saved = repository.save(toEntity(request));
+        UUID ownerUuid;
+        try {
+            ownerUuid = jdbcTemplate.queryForObject(
+                    "select uuid from owner_account where mail = ?",
+                    UUID.class,
+                    request.getOwnerMail());
+        } catch (EmptyResultDataAccessException exception) {
+            throw new ResourceNotFoundException("No existe owner con mail " + request.getOwnerMail());
+        }
+
+        if (ownerUuid == null) {
+            throw new ResourceNotFoundException("No existe owner con mail " + request.getOwnerMail());
+        }
+
+        Restaurante saved = repository.saveAndFlush(toEntity(request));
+        jdbcTemplate.update(
+                "insert into owner_restaurant (id_owner, id_restaurant) values (?, ?)",
+                ownerUuid,
+                saved.getUuid());
         auditLogService.logRestaurantRegistration(saved.getUuid(), saved.getName());
+        auditLogService.logOwnerRegistry(saved.getUuid(), request.getOwnerMail());
         return toResponse(saved);
     }
 

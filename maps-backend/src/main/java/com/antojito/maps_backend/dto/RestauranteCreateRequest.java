@@ -1,6 +1,7 @@
 package com.antojito.maps_backend.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -18,6 +19,12 @@ import lombok.Setter;
 @AllArgsConstructor
 @Schema(description = "Payload para crear un restaurante")
 public class RestauranteCreateRequest {
+
+    @NotBlank(message = "El mail del owner es obligatorio")
+    @Email(message = "El mail del owner no tiene formato valido")
+    @Size(max = 150, message = "El mail del owner no puede exceder 150 caracteres")
+    @Schema(description = "Mail del owner registrado", example = "owner.nuevo@antojitosmaps.com")
+    private String ownerMail;
 
     @NotBlank(message = "El nombre es obligatorio")
     @Size(max = 120, message = "El nombre no puede exceder 120 caracteres")

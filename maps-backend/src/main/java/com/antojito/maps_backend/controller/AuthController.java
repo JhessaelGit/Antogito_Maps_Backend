@@ -4,7 +4,6 @@ import com.antojito.maps_backend.dto.ApiMessageResponse;
 import com.antojito.maps_backend.dto.RestaurantLoginRequest;
 import com.antojito.maps_backend.dto.RestaurantLogoutRequest;
 import com.antojito.maps_backend.dto.RestaurantRegistryRequest;
-import com.antojito.maps_backend.repository.RestauranteRepository;
 import com.antojito.maps_backend.service.AuditLogService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/restaurant")
 @CrossOrigin(origins = "${app.cors.allowed-origins:*}")
@@ -32,19 +33,16 @@ public class AuthController {
 
     private final AuditLogService auditLogService;
     private final JdbcTemplate jdbcTemplate;
-    private final RestauranteRepository restauranteRepository;
 
     public AuthController(
             AuditLogService auditLogService,
-            JdbcTemplate jdbcTemplate,
-            RestauranteRepository restauranteRepository) {
+            JdbcTemplate jdbcTemplate) {
         this.auditLogService = auditLogService;
         this.jdbcTemplate = jdbcTemplate;
-        this.restauranteRepository = restauranteRepository;
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Login de owner", description = "Valida credenciales de owner_restaurant")
+    @Operation(summary = "Login de owner", description = "Valida credenciales de owner_account")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "200",
@@ -54,7 +52,7 @@ public class AuthController {
     })
     public ResponseEntity<ApiMessageResponse> login(@Valid @RequestBody RestaurantLoginRequest request) {
         Integer matches = jdbcTemplate.queryForObject(
-                "select count(*) from owner_restaurant where mail = ? and password = ?",
+                "select count(*) from owner_account where mail = ? and password = ?",
                 Integer.class,
                 request.getMail(),
                 request.getPassword());
@@ -68,31 +66,26 @@ public class AuthController {
     }
 
     @PostMapping("/registry")
-    @Operation(summary = "Registrar owner", description = "Registra un owner para un restaurante existente")
+    @Operation(summary = "Registrar owner", description = "Registra owner sin necesidad de crear restaurante")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "201",
                 description = "Owner registrado",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiMessageResponse.class))),
-        @ApiResponse(responseCode = "404", description = "No existe restaurante con ese UUID"),
-        @ApiResponse(responseCode = "400", description = "Owner ya registrado para ese restaurante")
+        @ApiResponse(responseCode = "400", description = "Owner ya registrado")
     })
     public ResponseEntity<ApiMessageResponse> registry(@Valid @RequestBody RestaurantRegistryRequest request) {
-        if (!restauranteRepository.existsById(request.getRestaurantId())) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No existe restaurante con uuid " + request.getRestaurantId());
-        }
-
         try {
             jdbcTemplate.update(
-                    "insert into owner_restaurant (id_restaurant, mail, password) values (?, ?, ?)",
-                    request.getRestaurantId(),
+                    "insert into owner_account (uuid, mail, password) values (?, ?, ?)",
+                    UUID.randomUUID(),
                     request.getMail(),
                     request.getPassword());
         } catch (DataIntegrityViolationException exception) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Owner ya registrado para este restaurante");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya existe un owner con ese mail");
         }
 
-        auditLogService.logOwnerRegistry(request.getRestaurantId(), request.getMail());
+        auditLogService.logOwnerRegistration(request.getMail());
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiMessageResponse("owner registrado"));
     }
 
