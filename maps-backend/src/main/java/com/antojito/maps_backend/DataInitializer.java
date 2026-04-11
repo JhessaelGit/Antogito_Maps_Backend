@@ -2,7 +2,7 @@ package com.antojito.maps_backend;
 
 import com.antojito.maps_backend.model.Restaurante;
 import com.antojito.maps_backend.repository.RestauranteRepository;
-import com.antojito.maps_backend.service.CloudflareImagesService;
+import com.antojito.maps_backend.service.R2StorageService;
 import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 @RequiredArgsConstructor
 public class DataInitializer {
 
-    private final CloudflareImagesService cloudflareImagesService;
+    private final R2StorageService r2StorageService;
 
     @Bean
     CommandLineRunner initDatabase(RestauranteRepository repository) {
@@ -63,7 +63,7 @@ public class DataInitializer {
         Restaurante existing = repository.findByCorreo(seed.correo()).orElse(null);
 
         if (existing == null) {
-            String imageUrl = cloudflareImagesService.ensureCloudflareImageUrl(
+            String imageUrl = r2StorageService.ensureR2ImageUrl(
                 null, seed.imageSourceUrl(), seed.nombre());
 
             Restaurante restaurant = Restaurante.builder()
@@ -86,7 +86,7 @@ public class DataInitializer {
             continue;
         }
 
-        String upgradedImageUrl = cloudflareImagesService.ensureCloudflareImageUrl(
+        String upgradedImageUrl = r2StorageService.ensureR2ImageUrl(
             existing.getImagenUrl(), seed.imageSourceUrl(), seed.nombre());
 
         if (upgradedImageUrl != null && !upgradedImageUrl.equals(existing.getImagenUrl())) {
