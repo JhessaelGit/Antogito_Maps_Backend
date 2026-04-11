@@ -19,6 +19,14 @@ public class AuditLogService {
         writeEvent("LOGIN", "email=" + email);
     }
 
+    public void logLogout(String email) {
+        writeEvent("LOGOUT", "email=" + email);
+    }
+
+    public void logOwnerRegistry(UUID restaurantUuid, String mail) {
+        writeEvent("OWNER_REGISTRY", "restaurantUuid=" + restaurantUuid + " mail=" + mail);
+    }
+
     public void logRestaurantRegistration(UUID uuid, String name) {
         writeEvent(
                 "RESTAURANTE_REGISTRO",

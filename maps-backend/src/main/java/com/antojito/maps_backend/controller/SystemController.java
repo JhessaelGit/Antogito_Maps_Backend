@@ -1,10 +1,8 @@
 package com.antojito.maps_backend.controller;
 
-import com.antojito.maps_backend.dto.ApiMessageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,17 +27,7 @@ public class SystemController {
         this.dataSource = dataSource;
     }
 
-    @GetMapping("/")
-    @Operation(summary = "Estado base del servicio", description = "Confirma que la API esta levantada")
-    @ApiResponse(
-            responseCode = "200",
-            description = "Servicio activo",
-            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiMessageResponse.class)))
-    public ResponseEntity<ApiMessageResponse> root() {
-        return ResponseEntity.ok(new ApiMessageResponse("Antojitos Maps Backend is running"));
-    }
-
-    @GetMapping({"/api/v1/health", "/api/health"})
+    @GetMapping("/app/health")
     @Operation(summary = "Health general", description = "Devuelve estado de disponibilidad del backend")
     @ApiResponse(
             responseCode = "200",
@@ -54,7 +42,7 @@ public class SystemController {
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping({"/api/v1/health/db", "/api/health/db"})
+    @GetMapping("/app/health/db")
     @Operation(summary = "Health de base de datos", description = "Verifica conectividad JDBC con la base de datos")
     @ApiResponses({
         @ApiResponse(

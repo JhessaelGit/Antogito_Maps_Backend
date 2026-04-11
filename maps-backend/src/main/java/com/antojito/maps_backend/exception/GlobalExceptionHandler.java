@@ -6,10 +6,12 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -44,6 +46,22 @@ public class GlobalExceptionHandler {
                         "Los datos enviados no cumplen las restricciones de base de datos",
                         request.getRequestURI(),
                         null));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> handleResponseStatus(
+            ResponseStatusException exception,
+            HttpServletRequest request) {
+        HttpStatusCode statusCode = exception.getStatusCode();
+        HttpStatus status = statusCode instanceof HttpStatus httpStatus
+                ? httpStatus
+                : HttpStatus.INTERNAL_SERVER_ERROR;
+        String message = exception.getReason() != null
+                ? exception.getReason()
+                : status.getReasonPhrase();
+
+        return ResponseEntity.status(statusCode)
+                .body(buildError(status, message, request.getRequestURI(), null));
     }
 
     @ExceptionHandler(Exception.class)

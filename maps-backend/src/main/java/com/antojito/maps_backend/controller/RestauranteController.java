@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/v1/restaurantes"})
+@RequestMapping("/restaurant")
 @CrossOrigin(origins = "${app.cors.allowed-origins:*}")
 @Tag(name = "Restaurantes", description = "Operaciones CRUD de restaurantes")
 public class RestauranteController {
@@ -36,7 +36,7 @@ public class RestauranteController {
         this.restauranteService = restauranteService;
     }
 
-    @GetMapping
+    @GetMapping("/all")
     @Operation(summary = "Listar restaurantes", description = "Obtiene la lista completa de restaurantes")
     @ApiResponse(
             responseCode = "200",
@@ -46,7 +46,7 @@ public class RestauranteController {
         return ResponseEntity.ok(restauranteService.findAll());
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/get/{id}")
     @Operation(summary = "Obtener restaurante por ID", description = "Busca un restaurante especifico por su identificador")
     @ApiResponses({
         @ApiResponse(
@@ -61,7 +61,7 @@ public class RestauranteController {
         return ResponseEntity.ok(restauranteService.findById(id));
     }
 
-    @PostMapping
+    @PostMapping("/create")
     @Operation(summary = "Crear restaurante", description = "Registra un nuevo restaurante")
     @ApiResponses({
         @ApiResponse(
@@ -73,11 +73,11 @@ public class RestauranteController {
     public ResponseEntity<RestauranteResponse> crearRestaurante(
             @Valid @RequestBody RestauranteCreateRequest request) {
         RestauranteResponse created = restauranteService.create(request);
-        URI location = URI.create("/api/v1/restaurantes/" + created.getUuid());
+        URI location = URI.create("/restaurant/get/" + created.getUuid());
         return ResponseEntity.created(location).body(created);
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/delete/{id}")
     @Operation(summary = "Eliminar restaurante", description = "Elimina un restaurante por su ID")
     @ApiResponses({
         @ApiResponse(responseCode = "204", description = "Restaurante eliminado"),
