@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -18,10 +19,10 @@ public class AuditLogService {
         writeEvent("LOGIN", "email=" + email);
     }
 
-    public void logRestaurantRegistration(Long id, String nombre, String correo) {
+    public void logRestaurantRegistration(UUID uuid, String name) {
         writeEvent(
                 "RESTAURANTE_REGISTRO",
-                "id=" + id + " nombre=" + nombre + " correo=" + correo);
+                "uuid=" + uuid + " name=" + name);
     }
 
     private void writeEvent(String eventType, String detail) {

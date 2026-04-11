@@ -6,6 +6,7 @@ import com.antojito.maps_backend.exception.ResourceNotFoundException;
 import com.antojito.maps_backend.model.Restaurante;
 import com.antojito.maps_backend.repository.RestauranteRepository;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,56 +24,53 @@ public class RestauranteService {
     }
 
     @Transactional(readOnly = true)
-    public RestauranteResponse findById(Long id) {
-        Restaurante restaurante = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("No existe restaurante con id " + id));
+    public RestauranteResponse findById(UUID uuid) {
+        Restaurante restaurante = repository.findById(uuid)
+                .orElseThrow(() -> new ResourceNotFoundException("No existe restaurante con uuid " + uuid));
         return toResponse(restaurante);
     }
 
     @Transactional
     public RestauranteResponse create(RestauranteCreateRequest request) {
         Restaurante saved = repository.save(toEntity(request));
-        auditLogService.logRestaurantRegistration(saved.getId(), saved.getNombre(), saved.getCorreo());
+        auditLogService.logRestaurantRegistration(saved.getUuid(), saved.getName());
         return toResponse(saved);
     }
 
     @Transactional
-    public void deleteById(Long id) {
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("No existe restaurante con id " + id);
+    public void deleteById(UUID uuid) {
+        if (!repository.existsById(uuid)) {
+            throw new ResourceNotFoundException("No existe restaurante con uuid " + uuid);
         }
-        repository.deleteById(id);
+        repository.deleteById(uuid);
     }
 
     private Restaurante toEntity(RestauranteCreateRequest request) {
         return Restaurante.builder()
-                .nombre(request.getNombre())
-                .correo(request.getCorreo())
-                .contrasena(request.getContrasena())
-                .descripcion(request.getDescripcion())
+                .name(request.getName())
+                .latitude(request.getLatitude())
+                .longitude(request.getLongitude())
+                .description(request.getDescription())
                 .imagenUrl(request.getImagenUrl())
-                .planSuscripcion(request.getPlanSuscripcion())
-                .fechaVencimientoPlan(request.getFechaVencimientoPlan())
-                .estadoBloqueo(request.getEstadoBloqueo())
-                .lat(request.getLat())
-                .lng(request.getLng())
-                .latitud(request.getLat())
-                .longitud(request.getLng())
+                .planSuscription(request.getPlanSuscription())
+                .planExpirationDate(request.getPlanExpirationDate())
+                .isBlocked(request.getIsBlocked())
+                .category(request.getCategory())
                 .build();
     }
 
     private RestauranteResponse toResponse(Restaurante entity) {
         return RestauranteResponse.builder()
-                .id(entity.getId())
-                .nombre(entity.getNombre())
-                .correo(entity.getCorreo())
-                .descripcion(entity.getDescripcion())
+                .uuid(entity.getUuid())
+                .name(entity.getName())
+                .description(entity.getDescription())
                 .imagenUrl(entity.getImagenUrl())
-                .planSuscripcion(entity.getPlanSuscripcion())
-                .fechaVencimientoPlan(entity.getFechaVencimientoPlan())
-                .estadoBloqueo(entity.getEstadoBloqueo())
-                .lat(entity.getLat() != null ? entity.getLat() : entity.getLatitud())
-                .lng(entity.getLng() != null ? entity.getLng() : entity.getLongitud())
+                .planSuscription(entity.getPlanSuscription())
+                .planExpirationDate(entity.getPlanExpirationDate())
+                .isBlocked(entity.getIsBlocked())
+                .latitude(entity.getLatitude())
+                .longitude(entity.getLongitude())
+                .category(entity.getCategory())
                 .build();
     }
 }

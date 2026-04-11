@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -52,10 +53,11 @@ public class RestauranteController {
                 responseCode = "200",
                 description = "Restaurante encontrado",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = RestauranteResponse.class))),
-        @ApiResponse(responseCode = "404", description = "No existe restaurante con ese ID")
+        @ApiResponse(responseCode = "404", description = "No existe restaurante con ese UUID")
     })
     public ResponseEntity<RestauranteResponse> obtenerPorId(
-            @Parameter(description = "ID del restaurante", example = "11") @PathVariable Long id) {
+            @Parameter(description = "UUID del restaurante", example = "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9")
+            @PathVariable UUID id) {
         return ResponseEntity.ok(restauranteService.findById(id));
     }
 
@@ -71,7 +73,7 @@ public class RestauranteController {
     public ResponseEntity<RestauranteResponse> crearRestaurante(
             @Valid @RequestBody RestauranteCreateRequest request) {
         RestauranteResponse created = restauranteService.create(request);
-        URI location = URI.create("/api/v1/restaurantes/" + created.getId());
+        URI location = URI.create("/api/v1/restaurantes/" + created.getUuid());
         return ResponseEntity.created(location).body(created);
     }
 
@@ -79,10 +81,11 @@ public class RestauranteController {
     @Operation(summary = "Eliminar restaurante", description = "Elimina un restaurante por su ID")
     @ApiResponses({
         @ApiResponse(responseCode = "204", description = "Restaurante eliminado"),
-        @ApiResponse(responseCode = "404", description = "No existe restaurante con ese ID")
+        @ApiResponse(responseCode = "404", description = "No existe restaurante con ese UUID")
     })
     public ResponseEntity<Void> eliminarRestaurante(
-            @Parameter(description = "ID del restaurante", example = "11") @PathVariable Long id) {
+            @Parameter(description = "UUID del restaurante", example = "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9")
+            @PathVariable UUID id) {
         restauranteService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
