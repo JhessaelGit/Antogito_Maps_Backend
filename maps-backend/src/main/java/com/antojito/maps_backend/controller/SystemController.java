@@ -15,13 +15,14 @@ import javax.sql.DataSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @RestController
 @Tag(name = "Sistema", description = "Endpoints de estado del backend y conectividad")
 public class SystemController {
 
     private final DataSource dataSource;
-
+    private static final Logger logger = LoggerFactory.getLogger(SystemController.class);
     public SystemController(DataSource dataSource) {
         this.dataSource = dataSource;
     }
@@ -76,7 +77,7 @@ public class SystemController {
     @PostMapping("/log")
     public ResponseEntity<Void> receiveLog(@RequestBody Map<String, String> body) {
         String email = body.get("email");
-        System.out.println("LOG EMAIL: " + email);
+        logger.info("Registro de email: {}", email);
         return ResponseEntity.ok().build();
     }
 
