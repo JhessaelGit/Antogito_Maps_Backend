@@ -1,6 +1,8 @@
 package com.antojito.maps_backend.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -32,10 +34,14 @@ public class RestauranteCreateRequest {
     private String name;
 
     @NotNull(message = "La latitud es obligatoria")
+    @DecimalMin(value = "-90.0", message = "La latitud debe ser mayor o igual a -90")
+    @DecimalMax(value = "90.0", message = "La latitud debe ser menor o igual a 90")
     @Schema(description = "Latitud para geolocalizacion", example = "-17.4")
     private Double latitude;
 
     @NotNull(message = "La longitud es obligatoria")
+    @DecimalMin(value = "-180.0", message = "La longitud debe ser mayor o igual a -180")
+    @DecimalMax(value = "180.0", message = "La longitud debe ser menor o igual a 180")
     @Schema(description = "Longitud para geolocalizacion", example = "-66.1")
     private Double longitude;
 
@@ -44,7 +50,9 @@ public class RestauranteCreateRequest {
     private String description;
 
     @Size(max = 500, message = "La URL de imagen no puede exceder 500 caracteres")
-    @Schema(description = "URL de la imagen del restaurante", example = "https://d32...r2.cloudflarestorage.com/antojitos-maps-images/restaurantes/foto.jpg")
+    @Schema(
+            description = "URL publica de la imagen almacenada en Cloudflare R2",
+            example = "https://d32...r2.cloudflarestorage.com/antojitos-maps-images/restaurantes/foto.jpg")
     private String imagenUrl;
 
     @Size(max = 60, message = "El plan no puede exceder 60 caracteres")
