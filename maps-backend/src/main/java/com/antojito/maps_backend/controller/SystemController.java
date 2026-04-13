@@ -14,16 +14,14 @@ import java.util.Map;
 import javax.sql.DataSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @Tag(name = "Sistema", description = "Endpoints de estado del backend y conectividad")
 public class SystemController {
 
     private final DataSource dataSource;
-    private static final Logger logger = LoggerFactory.getLogger(SystemController.class);
 
     public SystemController(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -74,21 +72,6 @@ public class SystemController {
             body.put("error", exception.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
         }
-    }
-
-    @PostMapping("/log")
-    public ResponseEntity<Void> receiveLog(@RequestBody Map<String, String> body) {
-        String level = body.get("level");
-        String message = body.get("message");
-        String email = body.get("email");
-        String role = body.get("role");
-        String action = body.get("action");
-        String timestamp = body.get("timestamp");
-
-        logger.info("[{}] {} | email={} | role={} | action={} | time={}",
-                level, message, email, role, action, timestamp);
-
-        return ResponseEntity.ok().build();
     }
 
     private String sanitizeJdbcUrl(String jdbcUrl) {
