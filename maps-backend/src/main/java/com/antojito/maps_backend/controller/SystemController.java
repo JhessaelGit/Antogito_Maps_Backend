@@ -14,8 +14,7 @@ import java.util.Map;
 import javax.sql.DataSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "Sistema", description = "Endpoints de estado del backend y conectividad")
@@ -72,6 +71,13 @@ public class SystemController {
             body.put("error", exception.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
         }
+    }
+
+    @PostMapping("/log")
+    public ResponseEntity<Void> receiveLog(@RequestBody Map<String, String> body) {
+        String email = body.get("email");
+        System.out.println("LOG EMAIL: " + email);
+        return ResponseEntity.ok().build();
     }
 
     private String sanitizeJdbcUrl(String jdbcUrl) {
