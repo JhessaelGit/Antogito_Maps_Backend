@@ -1,5 +1,6 @@
 package com.antojito.maps_backend.controller;
 
+import com.antojito.maps_backend.dto.ImageUploadResponse;
 import com.antojito.maps_backend.dto.RestauranteCreateRequest;
 import com.antojito.maps_backend.dto.RestauranteResponse;
 import com.antojito.maps_backend.service.RestauranteService;
@@ -14,6 +15,7 @@ import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,8 +23,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/restaurant")
@@ -76,6 +81,24 @@ public class RestauranteController {
         RestauranteResponse created = restauranteService.create(request);
         URI location = URI.create("/restaurant/get/" + created.getUuid());
         return ResponseEntity.created(location).body(created);
+    }
+
+    @PostMapping(value = "/upload-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Subir imagen", description = "Sube imagen a Cloudflare R2 y devuelve URL publica")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Imagen subida correctamente",
+                content = @Content(mediaType = "application/json", schema = @Schema(implementation = ImageUploadResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Archivo invalido"),
+        @ApiResponse(responseCode = "413", description = "Imagen demasiado grande"),
+        @ApiResponse(responseCode = "503", description = "R2 no configurado")
+    })
+    public ResponseEntity<ImageUploadResponse> uploadImage(
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "name", required = false) String restaurantName) {
+        String imageUrl = restauranteService.uploadImage(file, restaurantName);
+        return ResponseEntity.ok(new ImageUploadResponse(imageUrl));
     }
 
     @DeleteMapping("/delete/{id}")

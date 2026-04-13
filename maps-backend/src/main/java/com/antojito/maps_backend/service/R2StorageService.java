@@ -72,6 +72,18 @@ public class R2StorageService {
         return uploadImageOrFallback(sourceUrl, imageName);
     }
 
+    public String uploadMultipartImage(String imageName, String originalFilename, String contentType, byte[] content) {
+        if (!uploadEnabled || !isConfiguredForUpload()) {
+            throw new IllegalStateException("R2 no esta configurado para subida de imagenes");
+        }
+        if (content == null || content.length == 0) {
+            throw new IllegalArgumentException("Imagen vacia");
+        }
+
+        String fallbackName = hasText(originalFilename) ? originalFilename : "imagen.jpg";
+        return uploadBytesOrFallback(content, contentType, imageName, fallbackName);
+    }
+
     private String uploadImageOrFallback(String sourceUrl, String imageName) {
         try {
             ResponseEntity<byte[]> source = restClient.get()
@@ -87,24 +99,31 @@ public class R2StorageService {
             String contentType = source.getHeaders().getContentType() != null
                     ? source.getHeaders().getContentType().toString()
                     : MediaType.IMAGE_JPEG_VALUE;
-
-            String extension = resolveExtension(contentType, sourceUrl);
-            String objectKey = DEFAULT_OBJECT_PREFIX + "/"
-                    + toSlug(imageName) + "-"
-                    + UUID.randomUUID() + extension;
-
-            PutObjectRequest request = PutObjectRequest.builder()
-                    .bucket(bucket)
-                    .key(objectKey)
-                    .contentType(contentType)
-                    .build();
-
-            getS3Client().putObject(request, RequestBody.fromBytes(content));
-            return buildPublicObjectUrl(objectKey);
+            return uploadBytesOrFallback(content, contentType, imageName, sourceUrl);
         } catch (Exception exception) {
             log.warn("No se pudo subir imagen de '{}' a R2: {}", imageName, exception.getMessage());
             return sourceUrl;
         }
+    }
+
+    private String uploadBytesOrFallback(byte[] content, String contentType, String imageName, String fallbackValue) {
+        if (content == null || content.length == 0) {
+            return fallbackValue;
+        }
+
+        String extension = resolveExtension(contentType, fallbackValue);
+        String objectKey = DEFAULT_OBJECT_PREFIX + "/"
+                + toSlug(imageName) + "-"
+                + UUID.randomUUID() + extension;
+
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(objectKey)
+                .contentType(contentType)
+                .build();
+
+        getS3Client().putObject(request, RequestBody.fromBytes(content));
+        return buildPublicObjectUrl(objectKey);
     }
 
     private S3Client getS3Client() {
@@ -236,4 +255,5 @@ public class R2StorageService {
 
     private record ParsedR2Config(String endpoint, String bucket, String publicBaseUrl) {
     }
+
 }

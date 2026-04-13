@@ -34,10 +34,40 @@ Response 200 ejemplo:
 ]
 ```
 
-### 2) POST /restaurant/create
+### 2) POST /restaurant/upload-image
 
 Descripcion:
-Crea un restaurante asociado a un owner registrado.
+Sube una imagen del restaurante a Cloudflare R2 y devuelve la URL publica.
+
+Request:
+- Content-Type: multipart/form-data
+- Campo file: archivo de imagen (max 5 MB)
+- Campo name (opcional): nombre del restaurante para el slug del archivo
+
+Response 200 ejemplo:
+
+```json
+{
+  "imageUrl": "https://<account-id>.r2.cloudflarestorage.com/<bucket>/restaurantes/nuevo-antojito-uuid.jpg"
+}
+```
+
+Response 413 ejemplo:
+
+```json
+{
+  "timestamp": "2026-04-10T22:11:24.575Z",
+  "status": 413,
+  "error": "Payload Too Large",
+  "message": "La imagen no puede exceder 5 MB",
+  "path": "/restaurant/upload-image"
+}
+```
+
+### 3) POST /restaurant/create
+
+Descripcion:
+Crea un restaurante asociado a un owner registrado. El campo imagenUrl debe ser la URL de Cloudflare obtenida en /restaurant/upload-image.
 
 Request body ejemplo:
 
@@ -85,7 +115,7 @@ Response 404 ejemplo (owner no existe):
 }
 ```
 
-### 3) GET /restaurant/get/{id}
+### 4) GET /restaurant/get/{id}
 
 Descripcion:
 Obtiene un restaurante por UUID.
@@ -122,7 +152,7 @@ Response 404 ejemplo:
 }
 ```
 
-### 4) DELETE /restaurant/delete/{id}
+### 5) DELETE /restaurant/delete/{id}
 
 Descripcion:
 Elimina un restaurante por UUID.
@@ -133,7 +163,7 @@ Path param:
 Response 204:
 - sin body
 
-### 5) GET /app/health
+### 6) GET /app/health
 
 Descripcion:
 Estado general del backend.
@@ -147,7 +177,7 @@ Response 200 ejemplo:
 }
 ```
 
-### 6) GET /app/health/db
+### 7) GET /app/health/db
 
 Descripcion:
 Estado de la conexion a base de datos.
@@ -173,7 +203,7 @@ Response 503 ejemplo:
 }
 ```
 
-### 7) POST /restaurant/login
+### 8) POST /restaurant/login
 
 Descripcion:
 Valida credenciales en owner_account.
@@ -207,7 +237,7 @@ Response 401 ejemplo:
 }
 ```
 
-### 8) POST /restaurant/registry
+### 9) POST /restaurant/registry
 
 Descripcion:
 Registra un owner primero (sin restaurante).
@@ -241,7 +271,7 @@ Response 400 ejemplo (owner ya existe):
 }
 ```
 
-### 9) POST /restaurant/logout
+### 10) POST /restaurant/logout
 
 Descripcion:
 Registra logout en auditoria.
@@ -271,6 +301,7 @@ Crear una Collection llamada Antojitos Maps y configurar una variable de colecci
 Luego definir cada request como:
 
 - {{baseUrl}}/restaurant/all
+- {{baseUrl}}/restaurant/upload-image
 - {{baseUrl}}/restaurant/create
 - {{baseUrl}}/restaurant/get/{{restaurantId}}
 - {{baseUrl}}/restaurant/delete/{{restaurantId}}
