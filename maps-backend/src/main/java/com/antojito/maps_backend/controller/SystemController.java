@@ -27,6 +27,18 @@ public class SystemController {
         this.dataSource = dataSource;
     }
 
+    @GetMapping("/")
+    @Operation(summary = "Inicio API", description = "Endpoint raiz para confirmar que el backend esta activo")
+    public ResponseEntity<Map<String, Object>> root() {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("name", "Antojitos Maps Backend API");
+        body.put("status", "UP");
+        body.put("health", "/app/health");
+        body.put("healthDb", "/app/health/db");
+        body.put("timestamp", Instant.now().toString());
+        return ResponseEntity.ok(body);
+    }
+
     @GetMapping("/app/health")
     @Operation(summary = "Health general", description = "Devuelve estado de disponibilidad del backend")
     @ApiResponse(
