@@ -27,6 +27,28 @@ public class AuditLogService {
         writeEvent("OWNER_REGISTRO", "mail=" + mail);
     }
 
+    public void logAdminLogin(String mail) {
+        writeEvent("ADMIN_LOGIN", "mail=" + mail);
+    }
+
+    public void logAdminCreate(UUID actorAdminId, String createdMail) {
+        writeEvent("ADMIN_CREATE", "actorAdminId=" + actorAdminId + " createdMail=" + createdMail);
+    }
+
+    public void logAdminUpdate(String mail) {
+        writeEvent("ADMIN_UPDATE", "mail=" + mail);
+    }
+
+    public void logAdminDelete(String actorMail, String targetMail) {
+        writeEvent("ADMIN_DELETE", "actorMail=" + actorMail + " targetMail=" + targetMail);
+    }
+
+    public void logAdminRestaurantBlock(String actorMail, UUID restaurantUuid, Boolean isBlocked) {
+        writeEvent(
+                "ADMIN_RESTAURANT_BLOCK",
+                "actorMail=" + actorMail + " restaurantUuid=" + restaurantUuid + " isBlocked=" + isBlocked);
+    }
+
     public void logOwnerRegistry(UUID restaurantUuid, String mail) {
         writeEvent("OWNER_REGISTRY", "restaurantUuid=" + restaurantUuid + " mail=" + mail);
     }

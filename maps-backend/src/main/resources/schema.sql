@@ -21,7 +21,9 @@ create table restaurant (
 create table admin (
     uuid uuid primary key,
     mail varchar(150) not null unique,
-    password varchar(255) not null
+    password varchar(255) not null,
+    is_deleted boolean not null default false,
+    deleted_at timestamp
 );
 
 create table owner_account (

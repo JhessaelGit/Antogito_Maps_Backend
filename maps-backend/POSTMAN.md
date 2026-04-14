@@ -292,6 +292,113 @@ Response 200 ejemplo:
 }
 ```
 
+### 11) POST /admin/login
+
+Descripcion:
+Autentica administrador con mail y password.
+
+Request body ejemplo:
+
+```json
+{
+  "mail": "admin@antojitosmaps.com",
+  "password": "Admin2026!"
+}
+```
+
+Response 200 ejemplo:
+
+```json
+{
+  "adminId": "f792617d-0d5d-4881-b5f6-679bcf2c37f8",
+  "mail": "admin@antojitosmaps.com",
+  "message": "login correcto"
+}
+```
+
+### 12) POST /admin/create
+
+Descripcion:
+Crea un nuevo administrador. Requiere header X-Admin-Id de un admin activo.
+Si no existe ningun admin activo, permite bootstrap inicial sin header.
+
+Headers:
+- X-Admin-Id: UUID del admin autenticado (opcional solo para bootstrap inicial)
+
+Request body ejemplo:
+
+```json
+{
+  "mail": "nuevo.admin@antojitosmaps.com",
+  "password": "NuevoAdmin2026!"
+}
+```
+
+### 13) PUT /admin/edit
+
+Descripcion:
+Actualiza el perfil del admin autenticado (mail y password).
+
+Headers:
+- X-Admin-Id: UUID del admin autenticado (requerido)
+
+Request body ejemplo:
+
+```json
+{
+  "mail": "admin.editado@antojitosmaps.com",
+  "password": "AdminEditado2026!"
+}
+```
+
+### 14) DELETE /admin/delete/{id}
+
+Descripcion:
+Realiza borrado logico de otro administrador.
+
+Headers:
+- X-Admin-Id: UUID del admin autenticado (requerido)
+
+Path param:
+- id: UUID del admin a eliminar logicamente
+
+### 15) GET /admin/all
+
+Descripcion:
+Lista administradores activos.
+
+### 16) GET /admin/deleted
+
+Descripcion:
+Lista administradores eliminados logicamente.
+
+### 17) GET /admin/restaurants
+
+Descripcion:
+Lista todos los restaurantes para moderacion.
+
+Headers:
+- X-Admin-Id: UUID del admin autenticado (requerido)
+
+### 18) PATCH /admin/restaurants/{id}/block
+
+Descripcion:
+Permite bloquear o desbloquear un restaurante actualizando isBlocked.
+
+Headers:
+- X-Admin-Id: UUID del admin autenticado (requerido)
+
+Path param:
+- id: UUID del restaurante
+
+Request body ejemplo:
+
+```json
+{
+  "isBlocked": true
+}
+```
+
 ## Sugerencia para Postman
 
 Crear una Collection llamada Antojitos Maps y configurar una variable de coleccion:
@@ -310,3 +417,11 @@ Luego definir cada request como:
 - {{baseUrl}}/restaurant/login
 - {{baseUrl}}/restaurant/registry
 - {{baseUrl}}/restaurant/logout
+- {{baseUrl}}/admin/login
+- {{baseUrl}}/admin/create
+- {{baseUrl}}/admin/edit
+- {{baseUrl}}/admin/delete/{{adminId}}
+- {{baseUrl}}/admin/all
+- {{baseUrl}}/admin/deleted
+- {{baseUrl}}/admin/restaurants
+- {{baseUrl}}/admin/restaurants/{{restaurantId}}/block
