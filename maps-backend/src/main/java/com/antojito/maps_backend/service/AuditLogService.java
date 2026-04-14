@@ -1,0 +1,74 @@
+package com.antojito.maps_backend.service;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+import java.time.LocalDateTime;
+import java.util.UUID;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+@Service
+@Slf4j
+public class AuditLogService {
+
+    private static final Path LOG_FILE = Path.of("registro.log");
+
+    public void logLogin(String email) {
+        writeEvent("LOGIN", "email=" + email);
+    }
+
+    public void logLogout(String email) {
+        writeEvent("LOGOUT", "email=" + email);
+    }
+
+    public void logOwnerRegistration(String mail) {
+        writeEvent("OWNER_REGISTRO", "mail=" + mail);
+    }
+
+    public void logAdminLogin(String mail) {
+        writeEvent("ADMIN_LOGIN", "mail=" + mail);
+    }
+
+    public void logAdminCreate(UUID actorAdminId, String createdMail) {
+        writeEvent("ADMIN_CREATE", "actorAdminId=" + actorAdminId + " createdMail=" + createdMail);
+    }
+
+    public void logAdminUpdate(String mail) {
+        writeEvent("ADMIN_UPDATE", "mail=" + mail);
+    }
+
+    public void logAdminDelete(String actorMail, String targetMail) {
+        writeEvent("ADMIN_DELETE", "actorMail=" + actorMail + " targetMail=" + targetMail);
+    }
+
+    public void logAdminRestaurantBlock(String actorMail, UUID restaurantUuid, Boolean isBlocked) {
+        writeEvent(
+                "ADMIN_RESTAURANT_BLOCK",
+                "actorMail=" + actorMail + " restaurantUuid=" + restaurantUuid + " isBlocked=" + isBlocked);
+    }
+
+    public void logOwnerRegistry(UUID restaurantUuid, String mail) {
+        writeEvent("OWNER_REGISTRY", "restaurantUuid=" + restaurantUuid + " mail=" + mail);
+    }
+
+    public void logRestaurantRegistration(UUID uuid, String name) {
+        writeEvent(
+                "RESTAURANTE_REGISTRO",
+                "uuid=" + uuid + " name=" + name);
+    }
+
+    private void writeEvent(String eventType, String detail) {
+        String line = eventType + " | " + detail + " | fecha=" + LocalDateTime.now() + System.lineSeparator();
+        try {
+            Files.writeString(
+                    LOG_FILE,
+                    line,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND);
+        } catch (IOException exception) {
+            log.error("No se pudo escribir el registro de auditoria", exception);
+        }
+    }
+}

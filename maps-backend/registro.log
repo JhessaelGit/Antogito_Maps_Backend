@@ -1,1 +1,37 @@
-Email: polloshermanos@gmail.com | Fecha: 2026-03-30T15:38:06.711642100
+OWNER_REGISTRO | mail=owner.sabor@antojitosmaps.com | fecha=2026-04-11T00:00:31.217163400
+OWNER_REGISTRO | mail=owner.donforno@antojitosmaps.com | fecha=2026-04-11T00:00:32.308770300
+OWNER_REGISTRO | mail=owner.sushi@antojitosmaps.com | fecha=2026-04-11T00:00:33.331783100
+RESTAURANTE_REGISTRO | uuid=703aa3d5-4a89-4ee5-bda6-ef92f3324763 name=Sabor Valluno | fecha=2026-04-11T00:02:14.197265200
+OWNER_REGISTRY | restaurantUuid=703aa3d5-4a89-4ee5-bda6-ef92f3324763 mail=owner.sabor@antojitosmaps.com | fecha=2026-04-11T00:02:14.198201100
+RESTAURANTE_REGISTRO | uuid=779e1dc1-e47a-4e6f-a106-efd09ed60128 name=Pizzeria Don Forno | fecha=2026-04-11T00:02:15.418642700
+OWNER_REGISTRY | restaurantUuid=779e1dc1-e47a-4e6f-a106-efd09ed60128 mail=owner.donforno@antojitosmaps.com | fecha=2026-04-11T00:02:15.419470800
+RESTAURANTE_REGISTRO | uuid=548bd4c1-09ab-471b-ab8a-1f151d27953d name=Sushi Andino | fecha=2026-04-11T00:02:16.643792400
+OWNER_REGISTRY | restaurantUuid=548bd4c1-09ab-471b-ab8a-1f151d27953d mail=owner.sushi@antojitosmaps.com | fecha=2026-04-11T00:02:16.644792300
+OWNER_REGISTRO | mail=vistana@gmail.com | fecha=2026-04-13T13:29:12.067325200
+RESTAURANTE_REGISTRO | uuid=4dbc3bd2-a5ba-40bb-bb30-f56b8cbd9011 name=Vistana | fecha=2026-04-13T13:29:14.171164100
+OWNER_REGISTRY | restaurantUuid=4dbc3bd2-a5ba-40bb-bb30-f56b8cbd9011 mail=vistana@gmail.com | fecha=2026-04-13T13:29:14.171164100
+LOGIN | email=vistana@gmail.com | fecha=2026-04-13T13:29:31.209016300
+ADMIN_CREATE | actorAdminId=null createdMail=actor.admin@antojitosmaps.com | fecha=2026-04-13T23:56:01.860492500
+ADMIN_CREATE | actorAdminId=0a64a114-cc7f-475d-883f-b5e8344b236d createdMail=second.admin@antojitosmaps.com | fecha=2026-04-13T23:56:01.916652100
+ADMIN_UPDATE | mail=second.admin.updated@antojitosmaps.com | fecha=2026-04-13T23:56:01.932164400
+ADMIN_DELETE | actorMail=actor.admin@antojitosmaps.com targetMail=second.admin.updated@antojitosmaps.com | fecha=2026-04-13T23:56:01.994744400
+ADMIN_CREATE | actorAdminId=null createdMail=bootstrap.admin@antojitosmaps.com | fecha=2026-04-13T23:56:02.049555700
+ADMIN_LOGIN | mail=bootstrap.admin@antojitosmaps.com | fecha=2026-04-13T23:56:02.060068600
+ADMIN_CREATE | actorAdminId=null createdMail=mod.admin@antojitosmaps.com | fecha=2026-04-13T23:56:02.072580800
+ADMIN_RESTAURANT_BLOCK | actorMail=mod.admin@antojitosmaps.com restaurantUuid=51059655-4fa4-42e8-a9c5-1f4492d37658 isBlocked=true | fecha=2026-04-13T23:56:02.098724300
+ADMIN_CREATE | actorAdminId=null createdMail=actor.admin@antojitosmaps.com | fecha=2026-04-13T23:56:22.906419700
+ADMIN_CREATE | actorAdminId=11c0eed0-8543-4732-9f80-6818bba95e90 createdMail=second.admin@antojitosmaps.com | fecha=2026-04-13T23:56:22.973467100
+ADMIN_UPDATE | mail=second.admin.updated@antojitosmaps.com | fecha=2026-04-13T23:56:22.987287200
+ADMIN_DELETE | actorMail=actor.admin@antojitosmaps.com targetMail=second.admin.updated@antojitosmaps.com | fecha=2026-04-13T23:56:23.047710100
+ADMIN_CREATE | actorAdminId=null createdMail=bootstrap.admin@antojitosmaps.com | fecha=2026-04-13T23:56:23.099729500
+ADMIN_LOGIN | mail=bootstrap.admin@antojitosmaps.com | fecha=2026-04-13T23:56:23.109238500
+ADMIN_CREATE | actorAdminId=null createdMail=mod.admin@antojitosmaps.com | fecha=2026-04-13T23:56:23.121138900
+ADMIN_RESTAURANT_BLOCK | actorMail=mod.admin@antojitosmaps.com restaurantUuid=aae9153a-cc8c-4dae-8cf8-c432f570147c isBlocked=true | fecha=2026-04-13T23:56:23.133648
+ADMIN_CREATE | actorAdminId=null createdMail=actor.admin@antojitosmaps.com | fecha=2026-04-13T23:57:26.969444200
+ADMIN_CREATE | actorAdminId=0df52ad7-e0a5-4767-bc8f-86b3bc777842 createdMail=second.admin@antojitosmaps.com | fecha=2026-04-13T23:57:27.025440600
+ADMIN_UPDATE | mail=second.admin.updated@antojitosmaps.com | fecha=2026-04-13T23:57:27.054443600
+ADMIN_DELETE | actorMail=actor.admin@antojitosmaps.com targetMail=second.admin.updated@antojitosmaps.com | fecha=2026-04-13T23:57:27.106686500
+ADMIN_CREATE | actorAdminId=null createdMail=bootstrap.admin@antojitosmaps.com | fecha=2026-04-13T23:57:27.148686300
+ADMIN_LOGIN | mail=bootstrap.admin@antojitosmaps.com | fecha=2026-04-13T23:57:27.158688700
+ADMIN_CREATE | actorAdminId=null createdMail=mod.admin@antojitosmaps.com | fecha=2026-04-13T23:57:27.170687100
+ADMIN_RESTAURANT_BLOCK | actorMail=mod.admin@antojitosmaps.com restaurantUuid=d36952d7-1d77-4abb-a353-bb3ea0a0ab59 isBlocked=true | fecha=2026-04-13T23:57:27.182687400
