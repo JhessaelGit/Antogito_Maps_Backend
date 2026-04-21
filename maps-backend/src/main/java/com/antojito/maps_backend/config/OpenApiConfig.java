@@ -15,7 +15,7 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Antojitos Maps Backend API")
-                        .description("Documentacion de endpoints para autenticacion, restaurantes y salud del sistema.")
+                        .description("Documentacion de endpoints para autenticacion, restaurantes, promociones y salud del sistema.")
                         .version("v1")
                         .contact(new Contact()
                                 .name("Equipo Antojitos Maps")

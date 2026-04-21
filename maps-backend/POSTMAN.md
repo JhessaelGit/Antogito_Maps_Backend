@@ -399,6 +399,127 @@ Request body ejemplo:
 }
 ```
 
+### 19) GET /promotion/restaurant/{restaurantId}
+
+Descripcion:
+Obtiene promociones activas de un restaurante especifico.
+
+Identificacion del restaurante:
+- Path param: `restaurantId` (UUID)
+
+Autenticacion:
+- No requiere header de autenticacion.
+
+Response 200 ejemplo:
+
+```json
+[
+  {
+    "uuid": "6f03af25-8da3-4258-b0b6-16e82fd417f0",
+    "restaurantId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+    "title": "2x1 en saltenas",
+    "description": "Solo de lunes a viernes",
+    "percentDiscount": 25.00,
+    "dateStartPromotion": "2026-04-20",
+    "dateEndPromotion": "2026-04-30",
+    "isActivePromotion": true
+  }
+]
+```
+
+Response 404 ejemplo:
+
+```json
+{
+  "timestamp": "2026-04-20T22:11:24.575Z",
+  "status": 404,
+  "error": "Not Found",
+  "message": "No existe restaurante con uuid <restaurantId>",
+  "path": "/promotion/restaurant/<restaurantId>"
+}
+```
+
+### 20) POST /promotion/restaurant/{restaurantId}
+
+Descripcion:
+Crea una promocion para un restaurante. El restaurante se toma del path param.
+
+Identificacion del restaurante:
+- Path param: `restaurantId` (UUID)
+
+Autenticacion/autorizacion:
+- No usa token ni sesion.
+- No requiere headers especiales.
+- Requiere `ownerMail` en body.
+- El backend valida que `ownerMail` exista en `owner_account` y que este asociado al restaurante en `owner_restaurant`.
+
+Request body exacto:
+
+```json
+{
+  "ownerMail": "owner.sabor@antojitosmaps.com",
+  "title": "2x1 en saltenas",
+  "description": "Solo de lunes a viernes",
+  "percentDiscount": 25.00,
+  "dateStartPromotion": "2026-04-20",
+  "dateEndPromotion": "2026-04-30",
+  "isActivePromotion": true
+}
+```
+
+Tipos:
+- `ownerMail`: string (email)
+- `title`: string
+- `description`: string (opcional)
+- `percentDiscount`: number (0 a 100)
+- `dateStartPromotion`: date string `yyyy-MM-dd`
+- `dateEndPromotion`: date string `yyyy-MM-dd`
+- `isActivePromotion`: boolean (opcional, default `true`)
+
+Formato de fecha:
+- Se usa `LocalDate`.
+- Formato esperado: `yyyy-MM-dd`.
+- No se usa hora ni timezone en estos campos.
+
+Response 201 ejemplo:
+
+```json
+{
+  "uuid": "6f03af25-8da3-4258-b0b6-16e82fd417f0",
+  "restaurantId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "title": "2x1 en saltenas",
+  "description": "Solo de lunes a viernes",
+  "percentDiscount": 25.00,
+  "dateStartPromotion": "2026-04-20",
+  "dateEndPromotion": "2026-04-30",
+  "isActivePromotion": true
+}
+```
+
+Response 403 ejemplo (owner sin permisos sobre el restaurante):
+
+```json
+{
+  "timestamp": "2026-04-20T22:11:24.575Z",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "El owner no tiene permisos para crear promociones en este restaurante",
+  "path": "/promotion/restaurant/<restaurantId>"
+}
+```
+
+Response 400 ejemplo (fechas invalidas):
+
+```json
+{
+  "timestamp": "2026-04-20T22:11:24.575Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "La fecha de fin no puede ser anterior a la fecha de inicio",
+  "path": "/promotion/restaurant/<restaurantId>"
+}
+```
+
 ## Sugerencia para Postman
 
 Crear una Collection llamada Antojitos Maps y configurar una variable de coleccion:
@@ -425,3 +546,4 @@ Luego definir cada request como:
 - {{baseUrl}}/admin/deleted
 - {{baseUrl}}/admin/restaurants
 - {{baseUrl}}/admin/restaurants/{{restaurantId}}/block
+- {{baseUrl}}/promotion/restaurant/{{restaurantId}}
