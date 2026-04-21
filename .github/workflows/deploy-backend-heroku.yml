@@ -1,0 +1,43 @@
+name: Deploy Backend to Heroku
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - maps-backend/**
+      - .github/workflows/deploy-backend-heroku.yml
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create subtree split for backend
+        id: split
+        run: |
+          SPLIT_SHA=$(git subtree split --prefix maps-backend HEAD)
+          echo "split_sha=$SPLIT_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy split commit to Heroku
+        env:
+          HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+          HEROKU_APP_NAME: antojitos-maps
+        run: |
+          if [ -z "$HEROKU_API_KEY" ]; then
+            echo "Missing required secret: HEROKU_API_KEY"
+            exit 1
+          fi
+
+          git push --force "https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_NAME}.git" "${{ steps.split.outputs.split_sha }}:main"
