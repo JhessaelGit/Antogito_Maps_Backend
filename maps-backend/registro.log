@@ -35,3 +35,17 @@ ADMIN_CREATE | actorAdminId=null createdMail=bootstrap.admin@antojitosmaps.com |
 ADMIN_LOGIN | mail=bootstrap.admin@antojitosmaps.com | fecha=2026-04-13T23:57:27.158688700
 ADMIN_CREATE | actorAdminId=null createdMail=mod.admin@antojitosmaps.com | fecha=2026-04-13T23:57:27.170687100
 ADMIN_RESTAURANT_BLOCK | actorMail=mod.admin@antojitosmaps.com restaurantUuid=d36952d7-1d77-4abb-a353-bb3ea0a0ab59 isBlocked=true | fecha=2026-04-13T23:57:27.182687400
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T00:46:47.888896800
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T00:50:57.403232400
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T00:54:59.684824700
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T00:57:24.107497600
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T00:59:46.691635900
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T15:43:42.811116600
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T15:45:17.158283100
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T15:47:27.498766700
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:09:06.820090700
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:10:21.004853800
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:21:19.876029900
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:29:18.480311900
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:29:55.394059200
+LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:34:14.341695200
