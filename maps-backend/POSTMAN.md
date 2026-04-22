@@ -206,7 +206,7 @@ Response 503 ejemplo:
 ### 8) POST /restaurant/login
 
 Descripcion:
-Valida credenciales en owner_account.
+Valida credenciales en owner_account y devuelve la identidad del owner con los restaurantes asociados.
 
 Request body ejemplo:
 
@@ -221,6 +221,12 @@ Response 200 ejemplo:
 
 ```json
 {
+  "ownerId": "20a63174-3799-4e7f-98c7-7f2af9e2c42c",
+  "mail": "owner.sabor@antojitosmaps.com",
+  "restaurantIds": [
+    "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+    "58f58d45-2d7c-47ff-a6ff-c0d57cb021c2"
+  ],
   "message": "login correcto"
 }
 ```
@@ -450,14 +456,14 @@ Identificacion del restaurante:
 Autenticacion/autorizacion:
 - No usa token ni sesion.
 - No requiere headers especiales.
-- Requiere `ownerMail` en body.
-- El backend valida que `ownerMail` exista en `owner_account` y que este asociado al restaurante en `owner_restaurant`.
+- Requiere `ownerUuid` o `ownerMail` en body (preferido `ownerUuid`).
+- El backend valida que el owner exista en `owner_account` y que este asociado al restaurante en `owner_restaurant`.
 
 Request body exacto:
 
 ```json
 {
-  "ownerMail": "owner.sabor@antojitosmaps.com",
+  "ownerUuid": "20a63174-3799-4e7f-98c7-7f2af9e2c42c",
   "title": "2x1 en saltenas",
   "description": "Solo de lunes a viernes",
   "percentDiscount": 25.00,
@@ -468,7 +474,8 @@ Request body exacto:
 ```
 
 Tipos:
-- `ownerMail`: string (email)
+- `ownerUuid`: UUID string (preferido)
+- `ownerMail`: string (email, alternativo si no envias `ownerUuid`)
 - `title`: string
 - `description`: string (opcional)
 - `percentDiscount`: number (0 a 100)

@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -23,10 +24,14 @@ import lombok.Setter;
 @Schema(description = "Payload para crear una promocion")
 public class PromotionCreateRequest {
 
-    @NotBlank(message = "El mail del owner es obligatorio")
+    @Schema(description = "UUID del owner autenticado (preferido)", example = "20a63174-3799-4e7f-98c7-7f2af9e2c42c")
+    private UUID ownerUuid;
+
     @Email(message = "El mail del owner no tiene formato valido")
     @Size(max = 150, message = "El mail del owner no puede exceder 150 caracteres")
-    @Schema(description = "Mail del owner autenticado", example = "owner.sabor@antojitosmaps.com")
+    @Schema(
+            description = "Mail del owner autenticado (alternativo si no envias ownerUuid)",
+            example = "owner.sabor@antojitosmaps.com")
     private String ownerMail;
 
     @NotBlank(message = "El titulo es obligatorio")
