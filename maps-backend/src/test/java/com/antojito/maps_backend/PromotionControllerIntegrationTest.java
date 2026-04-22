@@ -97,7 +97,7 @@ class PromotionControllerIntegrationTest {
 
         String createBody = """
                 {
-                  "ownerMail": "owner.sabor@antojitosmaps.com",
+                                                                        "ownerUuid": "%s",
                   "title": "2x1 en saltenas",
                   "description": "Solo de lunes a viernes",
                   "percentDiscount": 25.0,
@@ -105,7 +105,7 @@ class PromotionControllerIntegrationTest {
                   "dateEndPromotion": "2026-04-30",
                   "isActivePromotion": true
                 }
-                """;
+                                                                """.formatted(ownerUuid);
 
         MvcResult createResult = mockMvc.perform(post("/promotion/restaurant/{restaurantId}", restaurante.getUuid())
                         .contentType(MediaType.APPLICATION_JSON)

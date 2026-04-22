@@ -45,7 +45,7 @@ public class PromotionService {
                     "La fecha de fin no puede ser anterior a la fecha de inicio");
         }
 
-        UUID ownerUuid = findOwnerUuidByMail(request.getOwnerMail());
+        UUID ownerUuid = resolveOwnerUuid(request);
         validateOwnerRestaurantRelationship(ownerUuid, restaurantId);
 
         Promotion created = promotionRepository.save(toEntity(restaurantId, request));
@@ -58,20 +58,70 @@ public class PromotionService {
         }
     }
 
+    private UUID resolveOwnerUuid(PromotionCreateRequest request) {
+        UUID ownerUuid = request.getOwnerUuid();
+        String ownerMail = normalizeMail(request.getOwnerMail());
+
+        if (ownerUuid == null && ownerMail == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debes enviar ownerUuid u ownerMail");
+        }
+
+        if (ownerUuid != null) {
+            requireOwner(ownerUuid);
+            if (ownerMail != null) {
+                validateOwnerIdentity(ownerUuid, ownerMail);
+            }
+            return ownerUuid;
+        }
+
+        return findOwnerUuidByMail(ownerMail);
+    }
+
+    private void requireOwner(UUID ownerUuid) {
+        Integer matches = jdbcTemplate.queryForObject(
+                "select count(*) from owner_account where uuid = ?",
+                Integer.class,
+                ownerUuid);
+
+        if (matches == null || matches == 0) {
+            throw new ResourceNotFoundException("No existe owner con uuid " + ownerUuid);
+        }
+    }
+
+    private void validateOwnerIdentity(UUID ownerUuid, String ownerMail) {
+        Integer matches = jdbcTemplate.queryForObject(
+                "select count(*) from owner_account where uuid = ? and mail = ?",
+                Integer.class,
+                ownerUuid,
+                ownerMail);
+
+        if (matches == null || matches == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ownerUuid y ownerMail no corresponden al mismo owner");
+        }
+    }
+
     private UUID findOwnerUuidByMail(String ownerMail) {
-        String normalizedOwnerMail = ownerMail == null ? null : ownerMail.trim().toLowerCase();
         try {
             UUID ownerUuid = jdbcTemplate.queryForObject(
                     "select uuid from owner_account where mail = ?",
                     UUID.class,
-                    normalizedOwnerMail);
+                    ownerMail);
             if (ownerUuid == null) {
-                throw new ResourceNotFoundException("No existe owner con mail " + normalizedOwnerMail);
+                throw new ResourceNotFoundException("No existe owner con mail " + ownerMail);
             }
             return ownerUuid;
         } catch (EmptyResultDataAccessException exception) {
-            throw new ResourceNotFoundException("No existe owner con mail " + normalizedOwnerMail);
+            throw new ResourceNotFoundException("No existe owner con mail " + ownerMail);
         }
+    }
+
+    private String normalizeMail(String mail) {
+        if (mail == null) {
+            return null;
+        }
+
+        String normalized = mail.trim().toLowerCase();
+        return normalized.isBlank() ? null : normalized;
     }
 
     private void validateOwnerRestaurantRelationship(UUID ownerUuid, UUID restaurantId) {

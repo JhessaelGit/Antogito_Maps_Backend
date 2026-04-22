@@ -2,6 +2,7 @@ package com.antojito.maps_backend.controller;
 
 import com.antojito.maps_backend.dto.ApiMessageResponse;
 import com.antojito.maps_backend.dto.RestaurantLoginRequest;
+import com.antojito.maps_backend.dto.RestaurantLoginResponse;
 import com.antojito.maps_backend.dto.RestaurantLogoutRequest;
 import com.antojito.maps_backend.dto.RestaurantRegistryRequest;
 import com.antojito.maps_backend.service.AuditLogService;
@@ -12,6 +13,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,8 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.jdbc.core.JdbcTemplate;
-
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/restaurant")
@@ -47,22 +49,36 @@ public class AuthController {
         @ApiResponse(
                 responseCode = "200",
                 description = "Login correcto",
-                content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiMessageResponse.class))),
+                content = @Content(mediaType = "application/json", schema = @Schema(implementation = RestaurantLoginResponse.class))),
         @ApiResponse(responseCode = "401", description = "Credenciales invalidas")
     })
-    public ResponseEntity<ApiMessageResponse> login(@Valid @RequestBody RestaurantLoginRequest request) {
-        Integer matches = jdbcTemplate.queryForObject(
-                "select count(*) from owner_account where mail = ? and password = ?",
-                Integer.class,
-                request.getMail(),
-                request.getPassword());
-
-        if (matches == null || matches == 0) {
+    public ResponseEntity<RestaurantLoginResponse> login(@Valid @RequestBody RestaurantLoginRequest request) {
+        UUID ownerUuid;
+        try {
+            ownerUuid = jdbcTemplate.queryForObject(
+                    "select uuid from owner_account where mail = ? and password = ?",
+                    UUID.class,
+                    request.getMail(),
+                    request.getPassword());
+        } catch (EmptyResultDataAccessException exception) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales invalidas");
         }
 
+        if (ownerUuid == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales invalidas");
+        }
+
+        List<UUID> restaurantIds = jdbcTemplate.queryForList(
+                "select id_restaurant from owner_restaurant where id_owner = ?",
+                UUID.class,
+                ownerUuid);
+
         auditLogService.logLogin(request.getMail());
-        return ResponseEntity.ok(new ApiMessageResponse("login correcto"));
+        return ResponseEntity.ok(new RestaurantLoginResponse(
+                ownerUuid,
+                request.getMail(),
+                restaurantIds,
+                "login correcto"));
     }
 
     @PostMapping("/registry")
