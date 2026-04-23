@@ -527,6 +527,127 @@ Response 400 ejemplo (fechas invalidas):
 }
 ```
 
+### 21) POST /chat
+
+Descripcion:
+Envia un mensaje al chatbot con IA (Mistral AI). Si no se envia conversationId, se crea una nueva conversacion con UUID. Si se envia un conversationId existente, se continua la conversacion.
+
+Request body ejemplo (nueva conversacion):
+
+```json
+{
+  "message": "Hola, que restaurantes me recomiendas?"
+}
+```
+
+Request body ejemplo (continuar conversacion):
+
+```json
+{
+  "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "message": "Y cuales tienen promociones?"
+}
+```
+
+Response 200 ejemplo:
+
+```json
+{
+  "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "reply": "Te recomiendo visitar Sabor Valluno, tienen comida tipica cochabambina con menu ejecutivo y delivery."
+}
+```
+
+Response 400 ejemplo (mensaje vacio):
+
+```json
+{
+  "timestamp": "2026-04-22T22:11:24.575Z",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Error de validacion",
+  "path": "/chat",
+  "validationErrors": {
+    "message": "El mensaje no puede estar vacio"
+  }
+}
+```
+
+Response 502 ejemplo (error con IA):
+
+```json
+{
+  "timestamp": "2026-04-22T22:11:24.575Z",
+  "status": 502,
+  "error": "Bad Gateway",
+  "message": "Error al comunicarse con el modelo de IA: Connection refused",
+  "path": "/chat"
+}
+```
+
+### 22) GET /chat/{conversationId}
+
+Descripcion:
+Obtiene el historial completo de una conversacion por su UUID.
+
+Path param:
+- conversationId: UUID de la conversacion
+
+Response 200 ejemplo:
+
+```json
+{
+  "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "createdAt": "2026-04-22T22:11:24.575Z",
+  "messages": [
+    {
+      "role": "user",
+      "content": "Hola, que restaurantes me recomiendas?",
+      "timestamp": "2026-04-22T22:11:24.575Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Te recomiendo visitar Sabor Valluno, tienen comida tipica cochabambina.",
+      "timestamp": "2026-04-22T22:11:25.123Z"
+    }
+  ]
+}
+```
+
+Response 404 ejemplo:
+
+```json
+{
+  "timestamp": "2026-04-22T22:11:24.575Z",
+  "status": 404,
+  "error": "Not Found",
+  "message": "No existe conversacion con id f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "path": "/chat/f47ac10b-58cc-4372-a567-0e02b2c3d479"
+}
+```
+
+### 23) GET /chat/conversations
+
+Descripcion:
+Lista un resumen de todas las conversaciones almacenadas.
+
+Request:
+- Body: no aplica
+- Params: no aplica
+
+Response 200 ejemplo:
+
+```json
+[
+  {
+    "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+    "createdAt": "2026-04-22T22:11:24.575Z",
+    "messageCount": 4,
+    "preview": "Hola, que restaurantes me recomiendas?"
+  }
+]
+```
+
 ## Sugerencia para Postman
 
 Crear una Collection llamada Antojitos Maps y configurar una variable de coleccion:
@@ -554,3 +675,7 @@ Luego definir cada request como:
 - {{baseUrl}}/admin/restaurants
 - {{baseUrl}}/admin/restaurants/{{restaurantId}}/block
 - {{baseUrl}}/promotion/restaurant/{{restaurantId}}
+- {{baseUrl}}/chat
+- {{baseUrl}}/chat/{{conversationId}}
+- {{baseUrl}}/chat/conversations
+

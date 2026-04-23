@@ -40,3 +40,9 @@ build/
 # Runtime logs
 registro.log
 registro.log.*
+
+# Chat conversations (runtime data)
+conversations.json
+
+# System prompt (sensitive AI configuration)
+system_prompt.txt
