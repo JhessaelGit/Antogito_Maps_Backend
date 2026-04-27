@@ -18,4 +18,10 @@ public class ChatRequest {
     @NotBlank(message = "El mensaje no puede estar vacio")
     @Schema(description = "Mensaje del usuario", example = "Hola, que restaurantes me recomiendas?")
     private String message;
+
+    @Schema(description = "Latitud actual del usuario (opcional, para recomendaciones cercanas)", example = "-17.3935")
+    private Double latitude;
+
+    @Schema(description = "Longitud actual del usuario (opcional, para recomendaciones cercanas)", example = "-66.1570")
+    private Double longitude;
 }

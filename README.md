@@ -86,6 +86,8 @@ APP_R2_UPLOAD_ENABLED=true
 
 # ── Chatbot IA (Mistral AI) ──
 APP_MISTRAL_API_KEY=tu_api_key_de_mistral
+APP_CHAT_SYSTEM_PROMPT_FILE=system_prompt.txt
+APP_CHAT_CONTEXT_FILE=context.json
 APP_CHAT_CONVERSATIONS_FILE=conversations.json
 ```
 
@@ -161,7 +163,7 @@ La documentación Swagger incluye todos los endpoints organizados por tags:
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| `POST` | `/chat` | Enviar mensaje al chatbot |
+| `POST` | `/chat` | Enviar mensaje al chatbot (acepta lat/lng para recomendaciones cercanas) |
 | `GET` | `/chat/{conversationId}` | Obtener historial de conversación |
 | `GET` | `/chat/conversations` | Listar todas las conversaciones |
 
@@ -176,13 +178,42 @@ El chatbot utiliza **Mistral AI** como motor de inteligencia artificial.
 - Envío y recepción de mensajes vía API REST (`POST /chat`)
 - Cada conversación tiene un **UUID único**
 - Historial de conversaciones **persistido en archivo JSON**
-- System prompt personalizado para el contexto de Antojitos Maps
+- **Contexto estructurado** (`context.json`) con rol, reglas y dominio del asistente
+- **System prompt** (`system_prompt.txt`) personalizado: respuestas cortas, amigables y en español
+- **Recomendaciones por geolocalización**: si el frontend envía `latitude` y `longitude`, el chatbot consulta la BD y recomienda restaurantes reales dentro de un **radio de 5 km** usando la fórmula de Haversine
 - API key segura (nunca expuesta al frontend, configurada por variable de entorno)
 
+### Contexto del chatbot
+
+El comportamiento del chatbot se define mediante dos archivos:
+
+| Archivo | Propósito |
+|---------|-----------|
+| `context.json` | Contexto estructurado JSON con rol del asistente, dominio (restaurantes/promociones), reglas de comportamiento y ejemplos de respuesta |
+| `system_prompt.txt` | Prompt en lenguaje natural que define la personalidad: tono amigable, respuestas cortas (2-3 oraciones), uso de emojis, solo dominio gastronómico |
+
+Ambos archivos se cargan al iniciar el servidor y se inyectan en cada request a Mistral AI.
+
+### Recomendaciones por ubicación
+
+Cuando el frontend envía las coordenadas del usuario:
+
+1. El backend consulta todos los restaurantes no bloqueados de la BD
+2. Calcula la distancia con la **fórmula de Haversine**
+3. Filtra los restaurantes dentro de un **radio de 5 km**
+4. Inyecta la lista como contexto al modelo de IA
+5. La IA responde con restaurantes **reales** de la plataforma, con nombre, categoría y distancia
 
 ### Configuración
 
-Requiere la variable de entorno `APP_MISTRAL_API_KEY` con tu API Key de Mistral AI. Las conversaciones se guardan en `conversations.json` (configurable con `APP_CHAT_CONVERSATIONS_FILE`).
+| Variable de entorno | Descripción | Default |
+|---------------------|-------------|---------|
+| `APP_MISTRAL_API_KEY` | API Key de Mistral AI | (requerida) |
+| `APP_MISTRAL_API_URL` | URL del endpoint de Mistral | `https://api.mistral.ai/v1/chat/completions` |
+| `APP_MISTRAL_MODEL` | Modelo de Mistral a usar | `mistral-large-latest` |
+| `APP_CHAT_SYSTEM_PROMPT_FILE` | Ruta al archivo de system prompt | `system_prompt.txt` |
+| `APP_CHAT_CONTEXT_FILE` | Ruta al archivo de contexto JSON | `context.json` |
+| `APP_CHAT_CONVERSATIONS_FILE` | Ruta al archivo de conversaciones | `conversations.json` |
 
 ## Estructura del proyecto
 
@@ -212,6 +243,9 @@ maps-backend/
 ├── src/main/resources/
 │   ├── application.properties
 │   └── schema.sql
+├── context.json             # Contexto estructurado del chatbot (rol, reglas, dominio)
+├── system_prompt.txt        # System prompt del chatbot (personalidad, tono)
+├── conversations.json       # Historial de conversaciones (generado en runtime)
 ├── POSTMAN.md               # Guía detallada de endpoints
 ├── pom.xml
 └── .env                     # Variables de entorno (no versionado)

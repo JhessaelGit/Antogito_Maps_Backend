@@ -532,7 +532,11 @@ Response 400 ejemplo (fechas invalidas):
 Descripcion:
 Envia un mensaje al chatbot con IA (Mistral AI). Si no se envia conversationId, se crea una nueva conversacion con UUID. Si se envia un conversationId existente, se continua la conversacion.
 
-Request body ejemplo (nueva conversacion):
+Si se envian `latitude` y `longitude`, el chatbot consulta la base de datos y recomienda restaurantes reales dentro de un radio de 5 km de la ubicacion del usuario.
+
+El chatbot utiliza un contexto estructurado (`context.json`) y un system prompt (`system_prompt.txt`) que definen su rol, reglas de comportamiento y dominio (restaurantes en Bolivia).
+
+Request body ejemplo (nueva conversacion, sin ubicacion):
 
 ```json
 {
@@ -540,7 +544,7 @@ Request body ejemplo (nueva conversacion):
 }
 ```
 
-Request body ejemplo (continuar conversacion):
+Request body ejemplo (continuar conversacion, sin ubicacion):
 
 ```json
 {
@@ -549,12 +553,45 @@ Request body ejemplo (continuar conversacion):
 }
 ```
 
+Request body ejemplo (con ubicacion del usuario):
+
+```json
+{
+  "message": "Que restaurantes tengo cerca?",
+  "latitude": -17.3935,
+  "longitude": -66.1570
+}
+```
+
+Request body ejemplo (continuar conversacion con ubicacion):
+
+```json
+{
+  "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "message": "Algun otro restaurante cerca de aqui?",
+  "latitude": -17.3935,
+  "longitude": -66.1570
+}
+```
+
+Campos:
+- `message` (string, requerido): Mensaje del usuario.
+- `conversationId` (string, opcional): UUID de conversacion existente. Si no se envia, se crea una nueva.
+- `latitude` (number, opcional): Latitud del usuario para recomendaciones cercanas.
+- `longitude` (number, opcional): Longitud del usuario para recomendaciones cercanas.
+
+Comportamiento con ubicacion:
+- Si se envian `latitude` y `longitude`, el backend consulta los restaurantes no bloqueados de la BD.
+- Calcula la distancia Haversine y filtra los que estan dentro de un radio de 5 km.
+- Inyecta la lista de restaurantes cercanos como contexto al modelo de IA.
+- La IA responde con restaurantes reales de la plataforma, incluyendo nombre, categoria y distancia.
+
 Response 200 ejemplo:
 
 ```json
 {
   "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "reply": "Te recomiendo visitar Sabor Valluno, tienen comida tipica cochabambina con menu ejecutivo y delivery."
+  "reply": "¡Tienes buenas opciones cerca! 🍽️ Sabor Valluno (Comida Tipica) esta a 0.8 km y El Buen Gusto (Parrilla) a 1.2 km. ¡Miralos en el mapa!"
 }
 ```
 

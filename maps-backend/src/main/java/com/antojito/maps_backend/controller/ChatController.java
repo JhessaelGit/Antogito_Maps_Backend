@@ -30,7 +30,8 @@ public class ChatController {
     @Operation(
             summary = "Enviar mensaje al chatbot",
             description = "Envia un mensaje del usuario al modelo de IA y devuelve la respuesta. "
-                    + "Si no se envia conversationId, se crea una nueva conversacion con UUID.")
+                    + "Si no se envia conversationId, se crea una nueva conversacion con UUID. "
+                    + "Si se envian latitude y longitude, el chatbot recomendara restaurantes cercanos.")
     @ApiResponses({
             @ApiResponse(
                     responseCode = "200",
@@ -46,7 +47,11 @@ public class ChatController {
                     description = "Error al comunicarse con Mistral AI")
     })
     public ResponseEntity<ChatResponse> chat(@Valid @RequestBody ChatRequest request) {
-        ChatResponse response = chatService.chat(request.getConversationId(), request.getMessage());
+        ChatResponse response = chatService.chat(
+                request.getConversationId(),
+                request.getMessage(),
+                request.getLatitude(),
+                request.getLongitude());
         return ResponseEntity.ok(response);
     }
 

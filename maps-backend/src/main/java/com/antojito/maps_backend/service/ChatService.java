@@ -2,6 +2,8 @@ package com.antojito.maps_backend.service;
 
 import com.antojito.maps_backend.dto.ChatResponse;
 import com.antojito.maps_backend.dto.ConversationHistoryResponse;
+import com.antojito.maps_backend.model.Restaurante;
+import com.antojito.maps_backend.repository.RestauranteRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -21,6 +23,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -39,32 +42,35 @@ public class ChatService {
     @Value("${app.chat.system-prompt-file:system_prompt.txt}")
     private String systemPromptFile;
 
+    @Value("${app.chat.context-file:context.json}")
+    private String contextFile;
+
     @Value("${app.chat.conversations-file:conversations.json}")
     private String conversationsFilePath;
 
     private String systemPrompt;
+    private String contextJson;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final RestauranteRepository restauranteRepository;
 
-    /**
-     * Mapa en memoria: conversationId -> conversacion completa.
-     * Se sincroniza con el archivo JSON en cada escritura.
-     */
     private final ConcurrentHashMap<String, Conversation> conversations = new ConcurrentHashMap<>();
 
-    public ChatService(ObjectMapper objectMapper) {
+    public ChatService(ObjectMapper objectMapper, RestauranteRepository restauranteRepository) {
         this.objectMapper = objectMapper;
+        this.restauranteRepository = restauranteRepository;
         this.restTemplate = new RestTemplate();
     }
 
     @PostConstruct
     public void init() {
         loadSystemPrompt();
+        loadContext();
         loadConversationsFromFile();
     }
 
-    public ChatResponse chat(String conversationId, String userMessage) {
+    public ChatResponse chat(String conversationId, String userMessage, Double latitude, Double longitude) {
         validateApiKey();
 
         // Si no se envio conversationId, crear nueva conversacion
@@ -80,8 +86,8 @@ public class ChatService {
         // Agregar mensaje del usuario
         conversation.messages.add(new Message("user", userMessage, Instant.now().toString()));
 
-        // Construir la lista de mensajes para Mistral (con system prompt)
-        List<Map<String, String>> mistralMessages = buildMistralMessages(conversation);
+        // Construir la lista de mensajes para Mistral (con system prompt + restaurantes cercanos)
+        List<Map<String, String>> mistralMessages = buildMistralMessages(conversation, latitude, longitude);
 
         // Llamar a Mistral API
         String aiReply = callMistralApi(mistralMessages);
@@ -179,13 +185,26 @@ public class ChatService {
         }
     }
 
-    private List<Map<String, String>> buildMistralMessages(Conversation conversation) {
+    private List<Map<String, String>> buildMistralMessages(Conversation conversation, Double latitude, Double longitude) {
         List<Map<String, String>> messages = new ArrayList<>();
 
-        // System prompt
+        // System prompt + contexto estructurado + restaurantes cercanos
+        StringBuilder systemContent = new StringBuilder();
+        systemContent.append(systemPrompt);
+        if (contextJson != null && !contextJson.isBlank()) {
+            systemContent.append("\n\nCONTEXTO ESTRUCTURADO (JSON):\n");
+            systemContent.append(contextJson);
+        }
+
+        // Inyectar restaurantes cercanos si se proporcionaron coordenadas
+        String nearbyInfo = buildNearbyRestaurantsContext(latitude, longitude);
+        if (nearbyInfo != null) {
+            systemContent.append("\n\n").append(nearbyInfo);
+        }
+
         Map<String, String> systemMsg = new LinkedHashMap<>();
         systemMsg.put("role", "system");
-        systemMsg.put("content", systemPrompt);
+        systemMsg.put("content", systemContent.toString());
         messages.add(systemMsg);
 
         // Historial de la conversacion
@@ -197,6 +216,79 @@ public class ChatService {
         }
 
         return messages;
+    }
+
+    /**
+     * Consulta los restaurantes no bloqueados de la BD, calcula distancia Haversine
+     * y retorna un contexto con los restaurantes dentro de un radio de 5 km.
+     */
+    private static final double RADIO_CERCANO_KM = 5.0;
+
+    private String buildNearbyRestaurantsContext(Double latitude, Double longitude) {
+        if (latitude == null || longitude == null) {
+            return null;
+        }
+
+        try {
+            List<Restaurante> allRestaurants = restauranteRepository.findAll().stream()
+                    .filter(r -> r.getIsBlocked() == null || !r.getIsBlocked())
+                    .toList();
+
+            if (allRestaurants.isEmpty()) {
+                return "RESTAURANTES CERCANOS: No hay restaurantes registrados en la plataforma actualmente.";
+            }
+
+            // Calcular distancia, filtrar por radio de 5 km y ordenar por cercanía
+            List<Map<String, Object>> nearby = allRestaurants.stream()
+                    .map(r -> {
+                        double distance = haversineDistance(latitude, longitude, r.getLatitude(), r.getLongitude());
+                        Map<String, Object> info = new LinkedHashMap<>();
+                        info.put("nombre", r.getName());
+                        info.put("categoria", r.getCategory() != null ? r.getCategory() : "Sin categoría");
+                        info.put("descripcion", r.getDescription() != null ? r.getDescription() : "Sin descripción");
+                        info.put("distancia_km", Math.round(distance * 100.0) / 100.0);
+                        return info;
+                    })
+                    .filter(m -> (Double) m.get("distancia_km") <= RADIO_CERCANO_KM)
+                    .sorted(Comparator.comparingDouble(m -> (Double) m.get("distancia_km")))
+                    .collect(Collectors.toList());
+
+            StringBuilder sb = new StringBuilder();
+            sb.append("UBICACIÓN DEL USUARIO: lat=").append(latitude).append(", lng=").append(longitude).append("\n");
+
+            if (nearby.isEmpty()) {
+                sb.append("RESTAURANTES CERCANOS: No se encontraron restaurantes dentro de un radio de ")
+                  .append(RADIO_CERCANO_KM).append(" km. Informa al usuario que no hay restaurantes cerca de su ubicación actual.");
+            } else {
+                sb.append("RESTAURANTES DENTRO DE ").append(RADIO_CERCANO_KM).append(" KM (SOLO recomienda estos, NO inventes otros):\n");
+                for (int i = 0; i < nearby.size(); i++) {
+                    Map<String, Object> r = nearby.get(i);
+                    sb.append(String.format("%d. %s (%s) - %s - a %.2f km\n",
+                            i + 1, r.get("nombre"), r.get("categoria"), r.get("descripcion"), r.get("distancia_km")));
+                }
+            }
+
+            logger.info("Contexto de restaurantes cercanos: {} encontrados en radio de {} km", nearby.size(), RADIO_CERCANO_KM);
+            return sb.toString();
+
+        } catch (Exception e) {
+            logger.error("Error al consultar restaurantes cercanos: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Calcula la distancia en km entre dos coordenadas usando la fórmula de Haversine.
+     */
+    private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
+        final double R = 6371.0; // Radio de la Tierra en km
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 
     private void validateApiKey() {
@@ -224,6 +316,22 @@ public class ChatService {
         } catch (IOException e) {
             systemPrompt = "Eres un asistente de Antojitos Maps. Responde en espanol.";
             logger.error("Error al leer system prompt: {}", e.getMessage());
+        }
+    }
+
+    private void loadContext() {
+        try {
+            Path path = Path.of(contextFile);
+            if (Files.exists(path)) {
+                contextJson = Files.readString(path, StandardCharsets.UTF_8).trim();
+                logger.info("Contexto estructurado cargado desde {}", contextFile);
+            } else {
+                contextJson = null;
+                logger.warn("Archivo de contexto no encontrado ({}), el chatbot funcionará sin contexto estructurado", contextFile);
+            }
+        } catch (IOException e) {
+            contextJson = null;
+            logger.error("Error al leer contexto estructurado: {}", e.getMessage());
         }
     }
 
