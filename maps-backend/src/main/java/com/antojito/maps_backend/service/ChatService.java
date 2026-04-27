@@ -2,7 +2,9 @@ package com.antojito.maps_backend.service;
 
 import com.antojito.maps_backend.dto.ChatResponse;
 import com.antojito.maps_backend.dto.ConversationHistoryResponse;
+import com.antojito.maps_backend.model.ChatConversation;
 import com.antojito.maps_backend.model.Restaurante;
+import com.antojito.maps_backend.repository.ChatRepository;
 import com.antojito.maps_backend.repository.RestauranteRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,8 +20,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,12 +54,15 @@ public class ChatService {
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
+    private final ChatRepository chatRepository;
     private final RestauranteRepository restauranteRepository;
 
     private final ConcurrentHashMap<String, Conversation> conversations = new ConcurrentHashMap<>();
 
-    public ChatService(ObjectMapper objectMapper, RestauranteRepository restauranteRepository) {
+    public ChatService(ObjectMapper objectMapper, ChatRepository chatRepository,
+            RestauranteRepository restauranteRepository) {
         this.objectMapper = objectMapper;
+        this.chatRepository = chatRepository;
         this.restauranteRepository = restauranteRepository;
         this.restTemplate = new RestTemplate();
     }
@@ -73,51 +77,63 @@ public class ChatService {
     public ChatResponse chat(String conversationId, String userMessage, Double latitude, Double longitude) {
         validateApiKey();
 
-        // Si no se envio conversationId, crear nueva conversacion
         if (conversationId == null || conversationId.isBlank()) {
             conversationId = UUID.randomUUID().toString();
         }
 
-        // Obtener o crear la conversacion
         Conversation conversation = conversations.computeIfAbsent(
                 conversationId,
                 id -> new Conversation(id, Instant.now().toString(), new ArrayList<>()));
 
-        // Agregar mensaje del usuario
-        conversation.messages.add(new Message("user", userMessage, Instant.now().toString()));
+        conversation.messages.add(new ConversationMessage("user", userMessage, Instant.now().toString()));
 
-        // Construir la lista de mensajes para Mistral (con system prompt + restaurantes cercanos)
         List<Map<String, String>> mistralMessages = buildMistralMessages(conversation, latitude, longitude);
+        String reply = callMistralApi(mistralMessages);
 
-        // Llamar a Mistral API
-        String aiReply = callMistralApi(mistralMessages);
+        conversation.messages.add(new ConversationMessage("assistant", reply, Instant.now().toString()));
 
-        // Agregar respuesta de IA a la conversacion
-        conversation.messages.add(new Message("assistant", aiReply, Instant.now().toString()));
-
-        // Persistir
         saveConversationsToFile();
+
+        // Persist to MongoDB
+        ChatConversation mongoConversation = chatRepository
+                .findByConversationId(conversationId)
+                .orElse(new ChatConversation());
+
+        mongoConversation.setConversationId(conversationId);
+
+        if (mongoConversation.getCreatedAt() == null) {
+            mongoConversation.setCreatedAt(conversation.createdAt);
+        }
+
+        List<com.antojito.maps_backend.model.Message> mongoMessages =
+                conversation.messages.stream()
+                        .map(m -> new com.antojito.maps_backend.model.Message(m.role, m.content, m.timestamp))
+                        .toList();
+
+        mongoConversation.setMessages(mongoMessages);
+        chatRepository.save(mongoConversation);
 
         return ChatResponse.builder()
                 .conversationId(conversationId)
-                .reply(aiReply)
+                .reply(reply)
                 .build();
     }
 
     public ConversationHistoryResponse getConversation(String conversationId) {
         Conversation conversation = conversations.get(conversationId);
+
         if (conversation == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                    "No existe conversacion con id " + conversationId);
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
         }
 
-        List<ConversationHistoryResponse.MessageEntry> entries = conversation.messages.stream()
-                .map(m -> ConversationHistoryResponse.MessageEntry.builder()
-                        .role(m.role)
-                        .content(m.content)
-                        .timestamp(m.timestamp)
-                        .build())
-                .toList();
+        List<ConversationHistoryResponse.MessageEntry> entries =
+                conversation.messages.stream()
+                        .map(m -> ConversationHistoryResponse.MessageEntry.builder()
+                                .role(m.role)
+                                .content(m.content)
+                                .timestamp(m.timestamp)
+                                .build())
+                        .toList();
 
         return ConversationHistoryResponse.builder()
                 .conversationId(conversation.id)
@@ -134,61 +150,49 @@ public class ChatService {
                     summary.put("conversationId", c.id);
                     summary.put("createdAt", c.createdAt);
                     summary.put("messageCount", c.messages.size());
-                    // primer mensaje del usuario como preview
-                    c.messages.stream()
-                            .filter(m -> "user".equals(m.role))
-                            .findFirst()
-                            .ifPresent(m -> summary.put("preview", truncate(m.content, 80)));
                     return summary;
                 })
                 .toList();
     }
 
-    @SuppressWarnings("unchecked")
     private String callMistralApi(List<Map<String, String>> messages) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setBearerAuth(apiKey);
-
-        Map<String, Object> requestBody = new LinkedHashMap<>();
-        requestBody.put("model", model);
-        requestBody.put("messages", messages);
-        requestBody.put("max_tokens", 1024);
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
-
         try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBearerAuth(apiKey);
+
+            Map<String, Object> requestBody = new LinkedHashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", messages);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(requestBody, headers);
+
             ResponseEntity<Map> response = restTemplate.exchange(
                     apiUrl,
                     HttpMethod.POST,
                     entity,
-                    Map.class);
+                    Map.class
+            );
 
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                List<Map<String, Object>> choices = (List<Map<String, Object>>) response.getBody().get("choices");
-                if (choices != null && !choices.isEmpty()) {
-                    Map<String, Object> firstChoice = choices.get(0);
-                    Map<String, String> message = (Map<String, String>) firstChoice.get("message");
-                    return message.get("content");
-                }
-            }
+            List<Map<String, Object>> choices =
+                    (List<Map<String, Object>>) response.getBody().get("choices");
 
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Respuesta inesperada de Mistral AI");
+            Map<String, Object> firstChoice = choices.get(0);
+            Map<String, String> message = (Map<String, String>) firstChoice.get("message");
 
-        } catch (ResponseStatusException e) {
-            throw e;
+            return message.get("content");
+
         } catch (Exception e) {
-            logger.error("Error al comunicarse con Mistral AI: {}", e.getMessage());
+            logger.error("Error al llamar Mistral API: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Error al comunicarse con el modelo de IA: " + e.getMessage());
+                    "Error al comunicarse con Mistral AI: " + e.getMessage());
         }
     }
 
-    private List<Map<String, String>> buildMistralMessages(Conversation conversation, Double latitude, Double longitude) {
+    private List<Map<String, String>> buildMistralMessages(Conversation conversation,
+            Double latitude, Double longitude) {
         List<Map<String, String>> messages = new ArrayList<>();
 
-        // System prompt + contexto estructurado + restaurantes cercanos
         StringBuilder systemContent = new StringBuilder();
         systemContent.append(systemPrompt);
         if (contextJson != null && !contextJson.isBlank()) {
@@ -196,7 +200,6 @@ public class ChatService {
             systemContent.append(contextJson);
         }
 
-        // Inyectar restaurantes cercanos si se proporcionaron coordenadas
         String nearbyInfo = buildNearbyRestaurantsContext(latitude, longitude);
         if (nearbyInfo != null) {
             systemContent.append("\n\n").append(nearbyInfo);
@@ -207,8 +210,7 @@ public class ChatService {
         systemMsg.put("content", systemContent.toString());
         messages.add(systemMsg);
 
-        // Historial de la conversacion
-        for (Message m : conversation.messages) {
+        for (ConversationMessage m : conversation.messages) {
             Map<String, String> msg = new LinkedHashMap<>();
             msg.put("role", m.role);
             msg.put("content", m.content);
@@ -218,10 +220,6 @@ public class ChatService {
         return messages;
     }
 
-    /**
-     * Consulta los restaurantes no bloqueados de la BD, calcula distancia Haversine
-     * y retorna un contexto con los restaurantes dentro de un radio de 5 km.
-     */
     private static final double RADIO_CERCANO_KM = 5.0;
 
     private String buildNearbyRestaurantsContext(Double latitude, Double longitude) {
@@ -238,10 +236,10 @@ public class ChatService {
                 return "RESTAURANTES CERCANOS: No hay restaurantes registrados en la plataforma actualmente.";
             }
 
-            // Calcular distancia, filtrar por radio de 5 km y ordenar por cercanía
             List<Map<String, Object>> nearby = allRestaurants.stream()
                     .map(r -> {
-                        double distance = haversineDistance(latitude, longitude, r.getLatitude(), r.getLongitude());
+                        double distance = haversineDistance(latitude, longitude,
+                                r.getLatitude(), r.getLongitude());
                         Map<String, Object> info = new LinkedHashMap<>();
                         info.put("nombre", r.getName());
                         info.put("categoria", r.getCategory() != null ? r.getCategory() : "Sin categoría");
@@ -254,21 +252,26 @@ public class ChatService {
                     .collect(Collectors.toList());
 
             StringBuilder sb = new StringBuilder();
-            sb.append("UBICACIÓN DEL USUARIO: lat=").append(latitude).append(", lng=").append(longitude).append("\n");
+            sb.append("UBICACIÓN DEL USUARIO: lat=").append(latitude)
+              .append(", lng=").append(longitude).append("\n");
 
             if (nearby.isEmpty()) {
                 sb.append("RESTAURANTES CERCANOS: No se encontraron restaurantes dentro de un radio de ")
-                  .append(RADIO_CERCANO_KM).append(" km. Informa al usuario que no hay restaurantes cerca de su ubicación actual.");
+                  .append(RADIO_CERCANO_KM)
+                  .append(" km. Informa al usuario que no hay restaurantes cerca de su ubicación actual.");
             } else {
-                sb.append("RESTAURANTES DENTRO DE ").append(RADIO_CERCANO_KM).append(" KM (SOLO recomienda estos, NO inventes otros):\n");
+                sb.append("RESTAURANTES DENTRO DE ").append(RADIO_CERCANO_KM)
+                  .append(" KM (SOLO recomienda estos, NO inventes otros):\n");
                 for (int i = 0; i < nearby.size(); i++) {
                     Map<String, Object> r = nearby.get(i);
                     sb.append(String.format("%d. %s (%s) - %s - a %.2f km\n",
-                            i + 1, r.get("nombre"), r.get("categoria"), r.get("descripcion"), r.get("distancia_km")));
+                            i + 1, r.get("nombre"), r.get("categoria"),
+                            r.get("descripcion"), r.get("distancia_km")));
                 }
             }
 
-            logger.info("Contexto de restaurantes cercanos: {} encontrados en radio de {} km", nearby.size(), RADIO_CERCANO_KM);
+            logger.info("Contexto de restaurantes cercanos: {} encontrados en radio de {} km",
+                    nearby.size(), RADIO_CERCANO_KM);
             return sb.toString();
 
         } catch (Exception e) {
@@ -277,11 +280,8 @@ public class ChatService {
         }
     }
 
-    /**
-     * Calcula la distancia en km entre dos coordenadas usando la fórmula de Haversine.
-     */
     private double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
-        final double R = 6371.0; // Radio de la Tierra en km
+        final double R = 6371.0;
         double dLat = Math.toRadians(lat2 - lat1);
         double dLon = Math.toRadians(lon2 - lon1);
         double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
@@ -296,11 +296,6 @@ public class ChatService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
                     "API Key de Mistral AI no configurada. Configure app.mistral.api-key");
         }
-    }
-
-    private String truncate(String text, int maxLength) {
-        if (text == null) return "";
-        return text.length() <= maxLength ? text : text.substring(0, maxLength) + "...";
     }
 
     private void loadSystemPrompt() {
@@ -327,7 +322,8 @@ public class ChatService {
                 logger.info("Contexto estructurado cargado desde {}", contextFile);
             } else {
                 contextJson = null;
-                logger.warn("Archivo de contexto no encontrado ({}), el chatbot funcionará sin contexto estructurado", contextFile);
+                logger.warn("Archivo de contexto no encontrado ({}), el chatbot funcionará sin contexto estructurado",
+                        contextFile);
             }
         } catch (IOException e) {
             contextJson = null;
@@ -349,9 +345,8 @@ public class ChatService {
         File file = new File(conversationsFilePath);
         if (file.exists() && file.length() > 0) {
             try {
-                Map<String, Conversation> loaded = objectMapper.readValue(
-                        file,
-                        new TypeReference<Map<String, Conversation>>() {});
+                Map<String, Conversation> loaded =
+                        objectMapper.readValue(file, new TypeReference<Map<String, Conversation>>() {});
                 conversations.putAll(loaded);
                 logger.info("Se cargaron {} conversaciones desde {}", loaded.size(), conversationsFilePath);
             } catch (IOException e) {
@@ -360,34 +355,28 @@ public class ChatService {
         }
     }
 
-    /**
-     * Modelo de una conversacion completa.
-     */
     public static class Conversation {
         public String id;
         public String createdAt;
-        public List<Message> messages;
+        public List<ConversationMessage> messages;
 
         public Conversation() {}
 
-        public Conversation(String id, String createdAt, List<Message> messages) {
+        public Conversation(String id, String createdAt, List<ConversationMessage> messages) {
             this.id = id;
             this.createdAt = createdAt;
             this.messages = messages;
         }
     }
 
-    /**
-     * Modelo de un mensaje individual.
-     */
-    public static class Message {
+    public static class ConversationMessage {
         public String role;
         public String content;
         public String timestamp;
 
-        public Message() {}
+        public ConversationMessage() {}
 
-        public Message(String role, String content, String timestamp) {
+        public ConversationMessage(String role, String content, String timestamp) {
             this.role = role;
             this.content = content;
             this.timestamp = timestamp;
