@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +22,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/chat")
 @RequiredArgsConstructor
+@ConditionalOnBean(ChatService.class)
 @Tag(name = "Chatbot", description = "Endpoints de chatbot con IA (Mistral AI)")
 public class ChatController {
 

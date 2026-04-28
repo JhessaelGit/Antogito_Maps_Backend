@@ -9,6 +9,7 @@ import com.antojito.maps_backend.repository.RestauranteRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
+@ConditionalOnExpression("'${app.mistral.api-key:}' != ''")
 public class ChatService {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatService.class);
