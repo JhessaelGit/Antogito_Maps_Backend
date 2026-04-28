@@ -9,8 +9,6 @@ import io.swagger.v3.oas.annotations.media.*;
 import io.swagger.v3.oas.annotations.responses.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.ResponseEntity;
@@ -48,26 +46,13 @@ public class ChatController {
             @ApiResponse(responseCode = "502", description = "Error al comunicarse con Mistral AI")
     })
     public ResponseEntity<ChatResponse> chat(
-            @Valid @RequestBody ChatRequest request,
-            HttpServletResponse response,
-            @CookieValue(value = "conversationId", required = false) String cookieConversationId
+            @Valid @RequestBody ChatRequest request
     ) {
-        String conversationId = request.getConversationId();
-
-        if (conversationId == null || conversationId.isBlank()) {
-            conversationId = cookieConversationId;
-        }
-
         ChatResponse chatResponse = chatService.chat(
-                conversationId,
+                request.getConversationId(),
                 request.getMessage(),
                 request.getLatitude(),
                 request.getLongitude());
-
-        Cookie cookie = new Cookie("conversationId", chatResponse.getConversationId());
-        cookie.setPath("/");
-        cookie.setMaxAge(60 * 60 * 24);
-        response.addCookie(cookie);
 
         return ResponseEntity.ok(chatResponse);
     }
