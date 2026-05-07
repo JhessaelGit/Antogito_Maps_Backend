@@ -29,15 +29,11 @@ public class AdminService {
     private final AuditLogService auditLogService;
 
     @Transactional(readOnly = true)
-    public AdminLoginResponse login(AdminLoginRequest request) {
-        String mail = normalizeMail(request.getMail());
+    public AdminLoginResponse login(String email) {
+        String mail = normalizeMail(email);
 
         Admin admin = adminRepository.findByMailAndIsDeletedFalse(mail)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales invalidas"));
-
-        if (!admin.getPassword().equals(request.getPassword())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales invalidas");
-        }
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "El administrador no esta registrado o esta inactivo"));
 
         auditLogService.logAdminLogin(mail);
         return new AdminLoginResponse(admin.getUuid(), admin.getMail(), "login correcto");

@@ -49,16 +49,21 @@ public class AdminController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Login admin", description = "Autentica un administrador por mail y password")
+    @Operation(summary = "Login admin con Firebase", description = "Autentica un administrador validando el token de Firebase")
     @ApiResponses({
         @ApiResponse(
                 responseCode = "200",
                 description = "Login correcto",
                 content = @Content(mediaType = "application/json", schema = @Schema(implementation = AdminLoginResponse.class))),
-        @ApiResponse(responseCode = "401", description = "Credenciales invalidas")
+        @ApiResponse(responseCode = "401", description = "Token invalido o admin inactivo")
     })
-    public ResponseEntity<AdminLoginResponse> login(@Valid @RequestBody AdminLoginRequest request) {
-        return ResponseEntity.ok(adminService.login(request));
+    public ResponseEntity<AdminLoginResponse> login(@Valid @RequestBody com.antojito.maps_backend.dto.FirebaseLoginRequest request) {
+        try {
+            com.google.firebase.auth.FirebaseToken decodedToken = com.google.firebase.auth.FirebaseAuth.getInstance().verifyIdToken(request.getIdToken());
+            return ResponseEntity.ok(adminService.login(decodedToken.getEmail()));
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token de Firebase invalido");
+        }
     }
 
     @PostMapping("/create")
