@@ -54,8 +54,18 @@ public class AdminService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya existe un admin con ese mail");
             }
 
+            try {
+                com.google.firebase.auth.UserRecord.UpdateRequest updateRequest = new com.google.firebase.auth.UserRecord.UpdateRequest(getFirebaseUidByEmail(mail))
+                        .setPassword(request.getPassword())
+                        .setDisabled(false);
+                com.google.firebase.auth.FirebaseAuth.getInstance().updateUser(updateRequest);
+            } catch (Exception e) {
+                // If it doesn't exist in Firebase, create it
+                createFirebaseUser(mail, request.getPassword());
+            }
+
             existingByMail.setMail(mail);
-            existingByMail.setPassword(request.getPassword());
+            existingByMail.setPassword("FIREBASE_AUTH");
             existingByMail.setIsDeleted(Boolean.FALSE);
             existingByMail.setDeletedAt(null);
             Admin reactivated = adminRepository.save(existingByMail);
@@ -63,15 +73,34 @@ public class AdminService {
             return toAdminResponse(reactivated);
         }
 
+        createFirebaseUser(mail, request.getPassword());
+
         Admin created = adminRepository.save(Admin.builder()
                 .mail(mail)
-                .password(request.getPassword())
+                .password("FIREBASE_AUTH")
                 .isDeleted(Boolean.FALSE)
                 .deletedAt(null)
                 .build());
 
         auditLogService.logAdminCreate(actorAdminId, mail);
         return toAdminResponse(created);
+    }
+
+    private void createFirebaseUser(String mail, String password) {
+        try {
+            com.google.firebase.auth.UserRecord.CreateRequest createRequest = new com.google.firebase.auth.UserRecord.CreateRequest()
+                    .setEmail(mail)
+                    .setPassword(password);
+            com.google.firebase.auth.FirebaseAuth.getInstance().createUser(createRequest);
+        } catch (com.google.firebase.auth.FirebaseAuthException e) {
+            if (!e.getAuthErrorCode().toString().equals("EMAIL_EXISTS")) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error creando admin en Firebase: " + e.getMessage());
+            }
+        }
+    }
+
+    private String getFirebaseUidByEmail(String mail) throws com.google.firebase.auth.FirebaseAuthException {
+        return com.google.firebase.auth.FirebaseAuth.getInstance().getUserByEmail(mail).getUid();
     }
 
     @Transactional
@@ -83,8 +112,17 @@ public class AdminService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya existe un admin activo con ese mail");
         }
 
+        try {
+            com.google.firebase.auth.UserRecord.UpdateRequest updateRequest = new com.google.firebase.auth.UserRecord.UpdateRequest(getFirebaseUidByEmail(actor.getMail()))
+                    .setEmail(normalizedMail)
+                    .setPassword(password);
+            com.google.firebase.auth.FirebaseAuth.getInstance().updateUser(updateRequest);
+        } catch (com.google.firebase.auth.FirebaseAuthException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error actualizando admin en Firebase: " + e.getMessage());
+        }
+
         actor.setMail(normalizedMail);
-        actor.setPassword(password);
+        actor.setPassword("FIREBASE_AUTH");
 
         Admin updated = adminRepository.save(actor);
         auditLogService.logAdminUpdate(updated.getMail());
