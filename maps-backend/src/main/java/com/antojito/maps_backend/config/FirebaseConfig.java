@@ -18,9 +18,10 @@ public class FirebaseConfig {
             InputStream serviceAccount = null;
 
             // 1. Intentar leer desde variable de entorno (Para Heroku/Produccion)
-            String firebaseEnv = System.getenv("FIREBASE_CREDENTIALS");
+            String firebaseEnv = System.getenv("FIREBASE_CREDENTIALS_BASE64");
             if (firebaseEnv != null && !firebaseEnv.isBlank()) {
-                serviceAccount = new java.io.ByteArrayInputStream(firebaseEnv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                byte[] decodedBytes = java.util.Base64.getDecoder().decode(firebaseEnv);
+                serviceAccount = new java.io.ByteArrayInputStream(decodedBytes);
             } else {
                 // 2. Fallback a archivo local (Para desarrollo)
                 FileSystemResource resource = new FileSystemResource("antojitos-maps-auth-firebase-adminsdk-fbsvc-2f6d77adc7.json");
