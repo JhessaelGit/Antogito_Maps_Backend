@@ -27,11 +27,13 @@ public class ChatController {
 
     private final ChatService chatService;
 
+    private static final String HEADER_CLIENT_ID = "X-Client-Id";
+
     @PostMapping
     @Operation(
             summary = "Enviar mensaje al chatbot",
             description = "Envia un mensaje del usuario al modelo de IA y devuelve la respuesta. "
-                    + "Si no se envia conversationId, se usa cookie o se crea una nueva conversacion con UUID. "
+                    + "Requiere el X-Client-Id para mantener el hilo de la conversacion. "
                     + "Si se envian latitude y longitude, el chatbot recomendara restaurantes cercanos.")
     @ApiResponses({
             @ApiResponse(
@@ -46,10 +48,14 @@ public class ChatController {
             @ApiResponse(responseCode = "502", description = "Error al comunicarse con Mistral AI")
     })
     public ResponseEntity<ChatResponse> chat(
+            @RequestHeader(HEADER_CLIENT_ID) String clientIdHeader,
             @Valid @RequestBody ChatRequest request
     ) {
+        // Validamos que el clientIdHeader sea un UUID valido (opcional, pero buena practica)
+        java.util.UUID.fromString(clientIdHeader);
+
         ChatResponse chatResponse = chatService.chat(
-                request.getConversationId(),
+                clientIdHeader,
                 request.getMessage(),
                 request.getLatitude(),
                 request.getLongitude());
@@ -57,17 +63,17 @@ public class ChatController {
         return ResponseEntity.ok(chatResponse);
     }
 
-    @GetMapping("/{conversationId}")
+    @GetMapping("/history")
     @Operation(
             summary = "Obtener historial de conversacion",
-            description = "Devuelve el historial completo de una conversacion por su UUID.")
+            description = "Devuelve el historial completo de la conversacion del cliente actual.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Historial encontrado"),
             @ApiResponse(responseCode = "404", description = "Conversacion no encontrada")
     })
     public ResponseEntity<ConversationHistoryResponse> getConversation(
-            @PathVariable String conversationId) {
-        return ResponseEntity.ok(chatService.getConversation(conversationId));
+            @RequestHeader(HEADER_CLIENT_ID) String clientIdHeader) {
+        return ResponseEntity.ok(chatService.getConversation(clientIdHeader));
     }
 
     @GetMapping("/conversations")

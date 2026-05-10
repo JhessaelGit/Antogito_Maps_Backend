@@ -30,7 +30,7 @@ public class ComplaintService {
     private final AdminService adminService;
 
     @Transactional
-    public ComplaintResponse createComplaint(ComplaintCreateRequest request) {
+    public ComplaintResponse createComplaint(UUID clientUuid, ComplaintCreateRequest request) {
         if (request.getType() == ComplaintType.RESTAURANT) {
             if (!restauranteRepository.existsById(request.getTargetUuid())) {
                 throw new ResourceNotFoundException("Restaurante objetivo no encontrado");
@@ -42,6 +42,7 @@ public class ComplaintService {
         }
 
         Complaint complaint = Complaint.builder()
+                .clientUuid(clientUuid)
                 .type(request.getType())
                 .targetUuid(request.getTargetUuid())
                 .description(request.getDescription())

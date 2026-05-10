@@ -12,8 +12,7 @@ import lombok.NoArgsConstructor;
 @Schema(description = "Request para enviar un mensaje al chatbot")
 public class ChatRequest {
 
-    @Schema(description = "UUID de la conversacion existente (null para nueva conversacion)", example = "f47ac10b-58cc-4372-a567-0e02b2c3d479")
-    private String conversationId;
+
 
     @NotBlank(message = "El mensaje no puede estar vacio")
     @Schema(description = "Mensaje del usuario", example = "Hola, que restaurantes me recomiendas?")

@@ -5,6 +5,7 @@ drop table if exists admin cascade;
 drop table if exists restaurant cascade;
 drop table if exists restaurantes cascade;
 drop table if exists complaint cascade;
+drop table if exists client cascade;
 
 create table restaurant (
     uuid uuid primary key,
@@ -66,11 +67,23 @@ create table promotions (
         check (date_end_promotion >= date_start_promotion)
 );
 
+create table client (
+    uuid uuid primary key,
+    mail varchar(150) not null unique,
+    full_name varchar(150) not null,
+    phone varchar(20)
+);
+
 create table complaint (
     uuid uuid primary key,
+    client_uuid uuid not null,
     type varchar(50) not null,
     target_uuid uuid not null,
     description varchar(1000) not null,
     status varchar(50) not null default 'PENDING',
-    created_at timestamp not null default current_timestamp
+    created_at timestamp not null default current_timestamp,
+    constraint fk_complaint_client
+        foreign key (client_uuid)
+            references client (uuid)
+            on delete cascade
 );

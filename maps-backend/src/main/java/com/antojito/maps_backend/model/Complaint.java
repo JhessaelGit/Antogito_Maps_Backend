@@ -28,6 +28,9 @@ public class Complaint {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID uuid;
 
+    @Column(name = "client_uuid", nullable = false)
+    private UUID clientUuid;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
     private ComplaintType type;

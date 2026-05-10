@@ -134,10 +134,20 @@ La documentación Swagger incluye todos los endpoints organizados por tags:
 ### Autenticación y Seguridad (Firebase & JWT)
 
 El sistema utiliza **Firebase Authentication** para la gestión segura de identidades:
-- Los dueños de restaurantes (Owners) y Administradores inician sesión directamente con Firebase en el cliente.
+- Los clientes, dueños de restaurantes (Owners) y Administradores inician sesión directamente con Firebase en el cliente.
 - El cliente envía el JWT de Firebase (ID Token) al backend.
 - El backend valida la firma del token utilizando el **Firebase Admin SDK**.
-- **Endpoints Protegidos**: Todas las rutas sensibles requieren autorización. Por ejemplo, rutas `/admin/*` requieren el header `X-Admin-Id`, y operaciones de restaurantes requieren validación del token del owner.
+- **Endpoints Protegidos**: Todas las rutas sensibles requieren autorización. Por ejemplo, rutas `/admin/*` requieren el header `X-Admin-Id`, las rutas de chat requieren `X-Client-Id` y las operaciones de restaurantes requieren validación del token del owner.
+
+### Clientes
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `POST` | `/client/login` | Login de cliente (valida token Firebase) |
+| `POST` | `/client/registry` | Registrar nuevo cliente |
+| `POST` | `/client/logout` | Logout de cliente |
+
+### Autenticación (Owners)
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
