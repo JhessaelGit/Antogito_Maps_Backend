@@ -685,34 +685,105 @@ Response 200 ejemplo:
 ]
 ```
 
-## Sugerencia para Postman
+### 24) POST /complaint/create
 
-Crear una Collection llamada Antojitos Maps y configurar una variable de coleccion:
+Descripcion:
+Crea una nueva queja sobre un restaurante o una promocion.
 
-- baseUrl = http://localhost:8080
+Request body ejemplo (restaurante):
 
-Luego definir cada request como:
+```json
+{
+  "type": "RESTAURANT",
+  "targetUuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "description": "El restaurante no vende la comida que anuncia."
+}
+```
 
-- {{baseUrl}}/restaurant/all
-- {{baseUrl}}/restaurant/upload-image
-- {{baseUrl}}/restaurant/create
-- {{baseUrl}}/restaurant/get/{{restaurantId}}
-- {{baseUrl}}/restaurant/delete/{{restaurantId}}
-- {{baseUrl}}/app/health
-- {{baseUrl}}/app/health/db
-- {{baseUrl}}/restaurant/login
-- {{baseUrl}}/restaurant/registry
-- {{baseUrl}}/restaurant/logout
-- {{baseUrl}}/admin/login
-- {{baseUrl}}/admin/create
-- {{baseUrl}}/admin/edit
-- {{baseUrl}}/admin/delete/{{adminId}}
-- {{baseUrl}}/admin/all
-- {{baseUrl}}/admin/deleted
-- {{baseUrl}}/admin/restaurants
-- {{baseUrl}}/admin/restaurants/{{restaurantId}}/block
-- {{baseUrl}}/promotion/restaurant/{{restaurantId}}
-- {{baseUrl}}/chat
-- {{baseUrl}}/chat/{{conversationId}}
-- {{baseUrl}}/chat/conversations
+Request body ejemplo (promocion):
+
+```json
+{
+  "type": "PROMOTION",
+  "targetUuid": "6f03af25-8da3-4258-b0b6-16e82fd417f0",
+  "description": "La promocion ya no es valida pero sigue en la app."
+}
+```
+
+Response 201 ejemplo:
+
+```json
+{
+  "uuid": "c3e5d321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "type": "RESTAURANT",
+  "targetUuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "description": "El restaurante no vende la comida que anuncia.",
+  "status": "PENDING",
+  "createdAt": "2026-05-10T12:00:00.000"
+}
+```
+
+### 25) GET /complaint/admin/all
+
+Descripcion:
+Obtiene todas las quejas registradas.
+
+Headers:
+- X-Admin-Id: UUID del admin autenticado (requerido)
+
+Response 200 ejemplo:
+
+```json
+[
+  {
+    "uuid": "c3e5d321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+    "type": "RESTAURANT",
+    "targetUuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+    "description": "El restaurante no vende la comida que anuncia.",
+    "status": "PENDING",
+    "createdAt": "2026-05-10T12:00:00.000"
+  }
+]
+```
+
+### 26) GET /complaint/admin/pending
+
+Descripcion:
+Obtiene unicamente las quejas con estado PENDING.
+
+Headers:
+- X-Admin-Id: UUID del admin autenticado (requerido)
+
+### 27) POST /complaint/admin/review/{id}
+
+Descripcion:
+Permite a un administrador revisar una queja. Si el estado es ACCEPTED, se borra logicamente el objetivo (restaurante o promocion).
+
+Headers:
+- X-Admin-Id: UUID del admin autenticado (requerido)
+
+Path param:
+- id: UUID de la queja a revisar
+
+Request body ejemplo:
+
+```json
+{
+  "status": "ACCEPTED"
+}
+```
+
+Response 200 ejemplo:
+
+```json
+{
+  "uuid": "c3e5d321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "type": "RESTAURANT",
+  "targetUuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "description": "El restaurante no vende la comida que anuncia.",
+  "status": "ACCEPTED",
+  "createdAt": "2026-05-10T12:00:00.000"
+}
+```
+
 

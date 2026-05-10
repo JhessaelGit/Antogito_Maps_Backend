@@ -131,11 +131,17 @@ La documentación Swagger incluye todos los endpoints organizados por tags:
 | `POST` | `/restaurant/upload-image` | Subir imagen a Cloudflare R2 |
 | `DELETE` | `/restaurant/delete/{id}` | Eliminar restaurante |
 
-### Autenticación (Owners)
+### Autenticación y Seguridad (Firebase & JWT)
+
+El sistema utiliza **Firebase Authentication** para la gestión segura de identidades:
+- Los dueños de restaurantes (Owners) y Administradores inician sesión directamente con Firebase en el cliente.
+- El cliente envía el JWT de Firebase (ID Token) al backend.
+- El backend valida la firma del token utilizando el **Firebase Admin SDK**.
+- **Endpoints Protegidos**: Todas las rutas sensibles requieren autorización. Por ejemplo, rutas `/admin/*` requieren el header `X-Admin-Id`, y operaciones de restaurantes requieren validación del token del owner.
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| `POST` | `/restaurant/login` | Login de owner |
+| `POST` | `/restaurant/login` | Login de owner (valida token Firebase) |
 | `POST` | `/restaurant/registry` | Registrar nuevo owner |
 | `POST` | `/restaurant/logout` | Logout (auditoría) |
 
@@ -143,14 +149,25 @@ La documentación Swagger incluye todos los endpoints organizados por tags:
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| `POST` | `/admin/login` | Login de admin |
-| `POST` | `/admin/create` | Crear admin (requiere `X-Admin-Id`) |
-| `PUT` | `/admin/edit` | Editar perfil propio |
+| `POST` | `/admin/login` | Login de admin (valida token Firebase) |
+| `POST` | `/admin/create` | Crear admin en BD y Firebase (requiere auth si ya existe admin) |
+| `PUT` | `/admin/edit` | Editar perfil propio y sincronizar con Firebase |
 | `DELETE` | `/admin/delete/{id}` | Borrado lógico de admin |
 | `GET` | `/admin/all` | Listar admins activos |
 | `GET` | `/admin/deleted` | Listar admins eliminados |
 | `GET` | `/admin/restaurants` | Listar restaurantes (moderación) |
 | `PATCH` | `/admin/restaurants/{id}/block` | Bloquear/desbloquear restaurante |
+
+### Quejas (Complaints)
+
+Los usuarios pueden reportar restaurantes falsos o promociones engañosas. Los administradores revisan y deciden si penalizar (borrado lógico).
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `POST` | `/complaint/create` | Crear queja de restaurante o promoción (Público) |
+| `GET` | `/complaint/admin/all` | Ver todas las quejas (Solo admin) |
+| `GET` | `/complaint/admin/pending` | Ver quejas pendientes (Solo admin) |
+| `POST` | `/complaint/admin/review/{id}`| Aceptar o rechazar queja (Aceptar implica borrado lógico automático del restaurante o promoción) |
 
 ### Promociones
 
