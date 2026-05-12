@@ -17,6 +17,10 @@ public class ComplaintResponse {
     private UUID uuid;
     private ComplaintType type;
     private UUID targetUuid;
+    /** Nombre del restaurante o promoción objetivo (enriquecido en el service) */
+    private String targetName;
+    /** Categoría / tipo de plan del restaurante objetivo */
+    private String targetCategory;
     private String description;
     private ComplaintStatus status;
     private LocalDateTime createdAt;

@@ -1,19 +1,31 @@
 # POSTMAN Guide - Antojitos Maps Backend
 
-Base URL local:
+Base URL local: `http://localhost:8080`
+Base URL producción: `https://antojitos-maps.herokuapp.com`
 
-http://localhost:8080
+---
+
+## Modelo de autenticación
+
+> A partir de la versión actual **el frontend NO usa el SDK de Firebase**. El backend gestiona toda la integración con Firebase internamente. Los endpoints solo requieren `email` y `password` en texto plano.
+
+### Headers de sesión por rol
+
+| Rol | Header | Dónde se obtiene |
+|---|---|---|
+| Cliente | `X-Client-Id: <uuid>` | Campo `uuid` en respuesta de `/client/login` o `/client/registry` |
+| Admin | `X-Admin-Id: <uuid>` | Campo `adminId` en respuesta de `/admin/login` |
+| Owner | *(sin header, usa `ownerUuid` en body)* | Campo `ownerId` en respuesta de `/restaurant/login` |
+
+---
 
 ## Endpoints disponibles
 
 ### 1) GET /restaurant/all
 
-Descripcion:
-Obtiene la lista de restaurantes.
+Descripcion: Obtiene la lista de restaurantes no eliminados.
 
-Request:
-- Body: no aplica
-- Params: no aplica
+Request: no aplica
 
 Response 200 ejemplo:
 
@@ -34,68 +46,58 @@ Response 200 ejemplo:
 ]
 ```
 
+---
+
 ### 2) POST /restaurant/upload-image
 
-Descripcion:
-Sube una imagen del restaurante a Cloudflare R2 y devuelve la URL publica.
+Descripcion: Sube una imagen del restaurante a Cloudflare R2 y devuelve la URL publica.
 
 Request:
-- Content-Type: multipart/form-data
-- Campo file: archivo de imagen (max 5 MB)
-- Campo name (opcional): nombre del restaurante para el slug del archivo
+- Content-Type: `multipart/form-data`
+- Campo `file`: archivo de imagen (max 5 MB)
+- Campo `name` (opcional): nombre del restaurante para el slug del archivo
 
-Response 200 ejemplo:
-
-```json
-{
-  "imageUrl": "https://<account-id>.r2.cloudflarestorage.com/<bucket>/restaurantes/nuevo-antojito-uuid.jpg"
-}
-```
-
-Response 413 ejemplo:
+Response 200:
 
 ```json
 {
-  "timestamp": "2026-04-10T22:11:24.575Z",
-  "status": 413,
-  "error": "Payload Too Large",
-  "message": "La imagen no puede exceder 5 MB",
-  "path": "/restaurant/upload-image"
+  "imageUrl": "https://<account-id>.r2.cloudflarestorage.com/<bucket>/restaurantes/nombre-uuid.jpg"
 }
 ```
+
+---
 
 ### 3) POST /restaurant/create
 
-Descripcion:
-Crea un restaurante asociado a un owner registrado. El campo imagenUrl debe ser la URL de Cloudflare obtenida en /restaurant/upload-image.
+Descripcion: Crea un restaurante asociado a un owner ya registrado.
 
-Request body ejemplo:
+Request body:
 
 ```json
 {
-  "ownerMail": "owner.nuevo@antojitosmaps.com",
+  "ownerMail": "owner@ejemplo.com",
   "name": "Nuevo Antojito",
   "latitude": -17.4,
   "longitude": -66.1,
   "planSuscription": "BASIC",
-  "planExpirationDate": "2026-12-31",
+  "planExpirationDate": "2027-12-31",
   "isBlocked": false,
-  "description": "Registro de prueba",
+  "description": "Descripcion del restaurante",
   "imagenUrl": "https://.../restaurantes/nuevo-antojito.jpg",
   "category": "Comida Rapida"
 }
 ```
 
-Response 201 ejemplo:
+Response 201:
 
 ```json
 {
   "uuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
   "name": "Nuevo Antojito",
-  "description": "Registro de prueba",
+  "description": "Descripcion del restaurante",
   "imagenUrl": "https://.../restaurantes/nuevo-antojito.jpg",
   "planSuscription": "BASIC",
-  "planExpirationDate": "2026-12-31",
+  "planExpirationDate": "2027-12-31",
   "isBlocked": false,
   "latitude": -17.4,
   "longitude": -66.1,
@@ -103,320 +105,239 @@ Response 201 ejemplo:
 }
 ```
 
-Response 404 ejemplo (owner no existe):
-
-```json
-{
-  "timestamp": "2026-04-10T22:11:24.575Z",
-  "status": 404,
-  "error": "Not Found",
-  "message": "No existe owner con mail <ownerMail>",
-  "path": "/restaurant/create"
-}
-```
+---
 
 ### 4) GET /restaurant/get/{id}
 
-Descripcion:
-Obtiene un restaurante por UUID.
+Descripcion: Obtiene un restaurante por UUID.
 
-Path param:
-- id: UUID del restaurante
+Response 200: mismo schema que en `/restaurant/all`.
 
-Response 200 ejemplo:
-
-```json
-{
-  "uuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
-  "name": "Nuevo Antojito",
-  "description": "Registro de prueba",
-  "imagenUrl": "https://.../restaurantes/nuevo-antojito.jpg",
-  "planSuscription": "BASIC",
-  "planExpirationDate": "2026-12-31",
-  "isBlocked": false,
-  "latitude": -17.4,
-  "longitude": -66.1,
-  "category": "Comida Rapida"
-}
-```
-
-Response 404 ejemplo:
-
-```json
-{
-  "timestamp": "2026-04-10T22:11:24.575Z",
-  "status": 404,
-  "error": "Not Found",
-  "message": "No existe restaurante con uuid <id>",
-  "path": "/restaurant/get/<id>"
-}
-```
+---
 
 ### 5) DELETE /restaurant/delete/{id}
 
-Descripcion:
-Elimina un restaurante por UUID.
+Descripcion: Elimina un restaurante por UUID.
 
-Path param:
-- id: UUID del restaurante
+Response 204: sin body.
 
-Response 204:
-- sin body
+---
 
 ### 6) GET /app/health
 
-Descripcion:
-Estado general del backend.
-
-Response 200 ejemplo:
+Response 200:
 
 ```json
-{
-  "status": "UP",
-  "timestamp": "2026-04-10T22:11:24.575Z"
-}
+{ "status": "UP", "timestamp": "2026-05-12T19:00:00.000Z" }
 ```
+
+---
 
 ### 7) GET /app/health/db
 
-Descripcion:
-Estado de la conexion a base de datos.
-
-Response 200 ejemplo:
+Response 200:
 
 ```json
 {
-  "timestamp": "2026-04-10T22:11:24.575Z",
+  "timestamp": "2026-05-12T19:00:00.000Z",
   "status": "UP",
-  "databaseProduct": "PostgreSQL",
-  "databaseUrl": "jdbc:postgresql://..."
+  "databaseProduct": "PostgreSQL"
 }
 ```
 
-Response 503 ejemplo:
-
-```json
-{
-  "timestamp": "2026-04-10T22:11:24.575Z",
-  "status": "DOWN",
-  "error": "Connection refused"
-}
-```
+---
 
 ### 8) POST /restaurant/login
 
-Descripcion:
-Valida credenciales en owner_account y devuelve la identidad del owner con los restaurantes asociados.
+Descripcion: Autentica un owner con email y password. El backend verifica las credenciales contra Firebase y devuelve los datos del owner con sus restaurantes.
 
-Request body ejemplo:
+> **Cambio:** Ya no se envía `idToken` de Firebase. El frontend solo envía email y password.
+
+Request body:
 
 ```json
 {
-  "mail": "owner.sabor@antojitosmaps.com",
-  "password": "OwnerSabor2026!"
+  "email": "owner@ejemplo.com",
+  "password": "Password123!"
 }
 ```
 
-Response 200 ejemplo:
+Response 200:
 
 ```json
 {
   "ownerId": "20a63174-3799-4e7f-98c7-7f2af9e2c42c",
-  "mail": "owner.sabor@antojitosmaps.com",
+  "mail": "owner@ejemplo.com",
   "restaurantIds": [
-    "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
-    "58f58d45-2d7c-47ff-a6ff-c0d57cb021c2"
+    "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9"
   ],
   "message": "login correcto"
 }
 ```
 
-Response 401 ejemplo:
+Response 401: credenciales incorrectas o owner no registrado.
 
-```json
-{
-  "timestamp": "2026-04-10T22:11:24.575Z",
-  "status": 401,
-  "error": "Unauthorized",
-  "message": "Credenciales invalidas",
-  "path": "/restaurant/login"
-}
-```
+---
 
 ### 9) POST /restaurant/registry
 
-Descripcion:
-Registra un owner primero (sin restaurante).
+Descripcion: Registra un owner. El backend crea el usuario en Firebase y lo guarda en la BD.
 
-Request body ejemplo:
+> **Cambio:** Ya no se envía `idToken`. El frontend solo envía email y password.
 
-```json
-{
-  "mail": "owner.nuevo@antojitosmaps.com",
-  "password": "OwnerNuevo2026!"
-}
-```
-
-Response 201 ejemplo:
+Request body:
 
 ```json
 {
-  "message": "owner registrado"
+  "email": "nuevo.owner@ejemplo.com",
+  "password": "Password123!"
 }
 ```
 
-Response 400 ejemplo (owner ya existe):
+Response 201:
 
 ```json
-{
-  "timestamp": "2026-04-10T22:11:24.575Z",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Ya existe un owner con ese mail",
-  "path": "/restaurant/registry"
-}
+{ "message": "owner registrado" }
 ```
+
+---
 
 ### 10) POST /restaurant/logout
 
-Descripcion:
-Registra logout en auditoria.
-
-Request body ejemplo:
+Request body:
 
 ```json
-{
-  "mail": "owner.sabor@antojitosmaps.com"
-}
+{ "mail": "owner@ejemplo.com" }
 ```
 
-Response 200 ejemplo:
+Response 200:
 
 ```json
-{
-  "message": "logout registrado"
-}
+{ "message": "logout registrado" }
 ```
+
+---
 
 ### 11) POST /admin/login
 
-Descripcion:
-Autentica administrador con mail y password.
+Descripcion: Autentica un administrador con email y password. Firebase gestionado por el backend.
 
-Request body ejemplo:
+> **Cambio:** Ya no se envía `idToken`. El frontend solo envía email y password.
+
+Request body:
 
 ```json
 {
-  "mail": "admin@antojitosmaps.com",
+  "email": "admin@antojitos.com",
   "password": "Admin2026!"
 }
 ```
 
-Response 200 ejemplo:
+Response 200:
 
 ```json
 {
   "adminId": "f792617d-0d5d-4881-b5f6-679bcf2c37f8",
-  "mail": "admin@antojitosmaps.com",
+  "mail": "admin@antojitos.com",
   "message": "login correcto"
 }
 ```
 
+---
+
 ### 12) POST /admin/create
 
-Descripcion:
-Crea un nuevo administrador. Requiere header X-Admin-Id de un admin activo.
-Si no existe ningun admin activo, permite bootstrap inicial sin header.
+Descripcion: Crea un nuevo administrador. El backend crea el usuario en Firebase y lo registra en la BD.
 
-Headers:
-- X-Admin-Id: UUID del admin autenticado (opcional solo para bootstrap inicial)
+- Si **no existe ningún admin** en el sistema: funciona sin header (bootstrap inicial).
+- Si **ya existe al menos un admin**: requiere header `X-Admin-Id` de un admin activo.
 
-Request body ejemplo:
+Headers (requerido salvo bootstrap):
+
+```
+X-Admin-Id: f792617d-0d5d-4881-b5f6-679bcf2c37f8
+```
+
+Request body:
 
 ```json
 {
-  "mail": "nuevo.admin@antojitosmaps.com",
+  "mail": "nuevo.admin@antojitos.com",
   "password": "NuevoAdmin2026!"
 }
 ```
 
-### 13) PUT /admin/edit
-
-Descripcion:
-Actualiza el perfil del admin autenticado (mail y password).
-
-Headers:
-- X-Admin-Id: UUID del admin autenticado (requerido)
-
-Request body ejemplo:
+Response 201:
 
 ```json
 {
-  "mail": "admin.editado@antojitosmaps.com",
+  "adminId": "a1b2c3d4-...",
+  "mail": "nuevo.admin@antojitos.com"
+}
+```
+
+---
+
+### 13) PUT /admin/edit
+
+Headers: `X-Admin-Id: <uuid>`
+
+Request body:
+
+```json
+{
+  "mail": "admin.editado@antojitos.com",
   "password": "AdminEditado2026!"
 }
 ```
 
+---
+
 ### 14) DELETE /admin/delete/{id}
 
-Descripcion:
-Realiza borrado logico de otro administrador.
+Headers: `X-Admin-Id: <uuid>`
 
-Headers:
-- X-Admin-Id: UUID del admin autenticado (requerido)
+Path param: `id` = UUID del admin a eliminar logicamente.
 
-Path param:
-- id: UUID del admin a eliminar logicamente
+---
 
 ### 15) GET /admin/all
 
-Descripcion:
-Lista administradores activos.
+Lista administradores activos. Sin headers.
+
+---
 
 ### 16) GET /admin/deleted
 
-Descripcion:
 Lista administradores eliminados logicamente.
+
+---
 
 ### 17) GET /admin/restaurants
 
-Descripcion:
+Headers: `X-Admin-Id: <uuid>`
+
 Lista todos los restaurantes para moderacion.
 
-Headers:
-- X-Admin-Id: UUID del admin autenticado (requerido)
+---
 
 ### 18) PATCH /admin/restaurants/{id}/block
 
-Descripcion:
-Permite bloquear o desbloquear un restaurante actualizando isBlocked.
+Headers: `X-Admin-Id: <uuid>`
 
-Headers:
-- X-Admin-Id: UUID del admin autenticado (requerido)
-
-Path param:
-- id: UUID del restaurante
-
-Request body ejemplo:
+Request body:
 
 ```json
-{
-  "isBlocked": true
-}
+{ "isBlocked": true }
 ```
+
+---
 
 ### 19) GET /promotion/restaurant/{restaurantId}
 
-Descripcion:
-Obtiene promociones activas de un restaurante especifico.
+Obtiene promociones activas de un restaurante. Sin autenticacion.
 
-Identificacion del restaurante:
-- Path param: `restaurantId` (UUID)
-
-Autenticacion:
-- No requiere header de autenticacion.
-
-Response 200 ejemplo:
+Response 200:
 
 ```json
 [
@@ -426,40 +347,20 @@ Response 200 ejemplo:
     "title": "2x1 en saltenas",
     "description": "Solo de lunes a viernes",
     "percentDiscount": 25.00,
-    "dateStartPromotion": "2026-04-20",
-    "dateEndPromotion": "2026-04-30",
+    "dateStartPromotion": "2026-05-01",
+    "dateEndPromotion": "2026-08-31",
     "isActivePromotion": true
   }
 ]
 ```
 
-Response 404 ejemplo:
-
-```json
-{
-  "timestamp": "2026-04-20T22:11:24.575Z",
-  "status": 404,
-  "error": "Not Found",
-  "message": "No existe restaurante con uuid <restaurantId>",
-  "path": "/promotion/restaurant/<restaurantId>"
-}
-```
+---
 
 ### 20) POST /promotion/restaurant/{restaurantId}
 
-Descripcion:
-Crea una promocion para un restaurante. El restaurante se toma del path param.
+Crea una promocion para un restaurante. Requiere `ownerUuid` (preferido) u `ownerMail` en el body para validar permisos.
 
-Identificacion del restaurante:
-- Path param: `restaurantId` (UUID)
-
-Autenticacion/autorizacion:
-- No usa token ni sesion.
-- No requiere headers especiales.
-- Requiere `ownerUuid` o `ownerMail` en body (preferido `ownerUuid`).
-- El backend valida que el owner exista en `owner_account` y que este asociado al restaurante en `owner_restaurant`.
-
-Request body exacto:
+Request body:
 
 ```json
 {
@@ -467,84 +368,103 @@ Request body exacto:
   "title": "2x1 en saltenas",
   "description": "Solo de lunes a viernes",
   "percentDiscount": 25.00,
-  "dateStartPromotion": "2026-04-20",
-  "dateEndPromotion": "2026-04-30",
+  "dateStartPromotion": "2026-05-01",
+  "dateEndPromotion": "2026-08-31",
   "isActivePromotion": true
 }
 ```
 
-Tipos:
-- `ownerUuid`: UUID string (preferido)
-- `ownerMail`: string (email, alternativo si no envias `ownerUuid`)
-- `title`: string
-- `description`: string (opcional)
-- `percentDiscount`: number (0 a 100)
-- `dateStartPromotion`: date string `yyyy-MM-dd`
-- `dateEndPromotion`: date string `yyyy-MM-dd`
-- `isActivePromotion`: boolean (opcional, default `true`)
+Tipos de campos:
+- `ownerUuid` / `ownerMail`: identifica al owner (usa `ownerUuid` preferentemente)
+- `percentDiscount`: number entre 0 y 100
+- `dateStartPromotion` / `dateEndPromotion`: formato `yyyy-MM-dd`
+- `isActivePromotion`: boolean (default `true`)
 
-Formato de fecha:
-- Se usa `LocalDate`.
-- Formato esperado: `yyyy-MM-dd`.
-- No se usa hora ni timezone en estos campos.
+Response 201: mismo schema que GET promotion.
 
-Response 201 ejemplo:
+---
 
-```json
-{
-  "uuid": "6f03af25-8da3-4258-b0b6-16e82fd417f0",
-  "restaurantId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
-  "title": "2x1 en saltenas",
-  "description": "Solo de lunes a viernes",
-  "percentDiscount": 25.00,
-  "dateStartPromotion": "2026-04-20",
-  "dateEndPromotion": "2026-04-30",
-  "isActivePromotion": true
-}
-```
+### 21) POST /client/registry
 
-Response 403 ejemplo (owner sin permisos sobre el restaurante):
+Descripcion: Registra un nuevo cliente. El backend crea el usuario en Firebase y lo guarda en la BD.
+
+> **Cambio:** No requiere Firebase SDK en el frontend. Solo email, password y datos del perfil.
+
+Request body:
 
 ```json
 {
-  "timestamp": "2026-04-20T22:11:24.575Z",
-  "status": 403,
-  "error": "Forbidden",
-  "message": "El owner no tiene permisos para crear promociones en este restaurante",
-  "path": "/promotion/restaurant/<restaurantId>"
+  "email": "cliente@ejemplo.com",
+  "password": "Cliente123!",
+  "fullName": "Maria Lopez",
+  "phone": "71234567"
 }
 ```
 
-Response 400 ejemplo (fechas invalidas):
+Response 201:
 
 ```json
 {
-  "timestamp": "2026-04-20T22:11:24.575Z",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "La fecha de fin no puede ser anterior a la fecha de inicio",
-  "path": "/promotion/restaurant/<restaurantId>"
+  "uuid": "f36d21a9-c6f5-4f7e-9ca6-fdb3e491068d",
+  "mail": "cliente@ejemplo.com",
+  "fullName": "Maria Lopez",
+  "phone": "71234567",
+  "message": "cliente registrado"
 }
 ```
 
-### 21) POST /chat
+> Guardar el `uuid` como `X-Client-Id` para usar en chat y quejas.
 
-Descripcion:
-Envia un mensaje al chatbot con IA (Mistral AI). Si no se envia conversationId, se crea una nueva conversacion con UUID. Si se envia un conversationId existente, se continua la conversacion.
+---
 
-Si se envian `latitude` y `longitude`, el chatbot consulta la base de datos y recomienda restaurantes reales dentro de un radio de 5 km de la ubicacion del usuario.
+### 22) POST /client/login
 
-El chatbot utiliza un contexto estructurado (`context.json`) y un system prompt (`system_prompt.txt`) que definen su rol, reglas de comportamiento y dominio (restaurantes en Bolivia).
+Descripcion: Autentica un cliente con email y password.
 
-Request body ejemplo (nueva conversacion, sin ubicacion):
+Request body:
 
 ```json
 {
-  "message": "Hola, que restaurantes me recomiendas?"
+  "email": "cliente@ejemplo.com",
+  "password": "Cliente123!"
 }
 ```
 
-Request body ejemplo (continuar conversacion, sin ubicacion):
+Response 200: mismo schema que registry.
+
+---
+
+### 23) POST /client/logout
+
+Request body:
+
+```json
+{ "mail": "cliente@ejemplo.com" }
+```
+
+---
+
+### 24) POST /chat
+
+Descripcion: Envia un mensaje al chatbot con IA (Mistral AI). Las conversaciones se persisten en MongoDB vinculadas al `X-Client-Id`.
+
+Headers (opcional para usuarios registrados):
+
+```
+X-Client-Id: f36d21a9-c6f5-4f7e-9ca6-fdb3e491068d
+```
+
+Request body (nueva conversacion, con ubicacion):
+
+```json
+{
+  "message": "Que restaurantes hay cerca?",
+  "latitude": -17.3935,
+  "longitude": -66.1570
+}
+```
+
+Request body (continuar conversacion existente):
 
 ```json
 {
@@ -553,144 +473,87 @@ Request body ejemplo (continuar conversacion, sin ubicacion):
 }
 ```
 
-Request body ejemplo (con ubicacion del usuario):
-
-```json
-{
-  "message": "Que restaurantes tengo cerca?",
-  "latitude": -17.3935,
-  "longitude": -66.1570
-}
-```
-
-Request body ejemplo (continuar conversacion con ubicacion):
-
-```json
-{
-  "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "message": "Algun otro restaurante cerca de aqui?",
-  "latitude": -17.3935,
-  "longitude": -66.1570
-}
-```
-
 Campos:
-- `message` (string, requerido): Mensaje del usuario.
-- `conversationId` (string, opcional): UUID de conversacion existente. Si no se envia, se crea una nueva.
-- `latitude` (number, opcional): Latitud del usuario para recomendaciones cercanas.
-- `longitude` (number, opcional): Longitud del usuario para recomendaciones cercanas.
+- `message` (string, **requerido**): Mensaje del usuario
+- `conversationId` (string, opcional): UUID de conversacion existente. Si no se envia, se crea una nueva
+- `latitude` / `longitude` (number, opcionales): coordenadas para recomendaciones de restaurantes cercanos (radio 5 km)
 
-Comportamiento con ubicacion:
-- Si se envian `latitude` y `longitude`, el backend consulta los restaurantes no bloqueados de la BD.
-- Calcula la distancia Haversine y filtra los que estan dentro de un radio de 5 km.
-- Inyecta la lista de restaurantes cercanos como contexto al modelo de IA.
-- La IA responde con restaurantes reales de la plataforma, incluyendo nombre, categoria y distancia.
-
-Response 200 ejemplo:
+Response 200:
 
 ```json
 {
   "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "reply": "¡Tienes buenas opciones cerca! 🍽️ Sabor Valluno (Comida Tipica) esta a 0.8 km y El Buen Gusto (Parrilla) a 1.2 km. ¡Miralos en el mapa!"
+  "reply": "Tienes 3 restaurantes cerca! Sabor Valluno a 0.8 km..."
 }
 ```
 
-Response 400 ejemplo (mensaje vacio):
+---
 
-```json
-{
-  "timestamp": "2026-04-22T22:11:24.575Z",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Error de validacion",
-  "path": "/chat",
-  "validationErrors": {
-    "message": "El mensaje no puede estar vacio"
-  }
-}
+### 25) GET /chat/history
+
+Descripcion: Obtiene el historial completo de la conversacion del cliente autenticado (persistida en MongoDB).
+
+> **Nota:** El endpoint es `/chat/history` con header `X-Client-Id`, NO `/chat/{conversationId}`.
+
+Headers (requerido):
+
+```
+X-Client-Id: f36d21a9-c6f5-4f7e-9ca6-fdb3e491068d
 ```
 
-Response 502 ejemplo (error con IA):
+Response 200:
 
 ```json
 {
-  "timestamp": "2026-04-22T22:11:24.575Z",
-  "status": 502,
-  "error": "Bad Gateway",
-  "message": "Error al comunicarse con el modelo de IA: Connection refused",
-  "path": "/chat"
-}
-```
-
-### 22) GET /chat/{conversationId}
-
-Descripcion:
-Obtiene el historial completo de una conversacion por su UUID.
-
-Path param:
-- conversationId: UUID de la conversacion
-
-Response 200 ejemplo:
-
-```json
-{
-  "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "createdAt": "2026-04-22T22:11:24.575Z",
+  "conversationId": "f36d21a9-c6f5-4f7e-9ca6-fdb3e491068d",
+  "createdAt": "2026-05-12T19:00:00.000Z",
   "messages": [
     {
       "role": "user",
-      "content": "Hola, que restaurantes me recomiendas?",
-      "timestamp": "2026-04-22T22:11:24.575Z"
+      "content": "Que restaurantes hay cerca?",
+      "timestamp": "2026-05-12T19:00:00.000Z"
     },
     {
       "role": "assistant",
-      "content": "Te recomiendo visitar Sabor Valluno, tienen comida tipica cochabambina.",
-      "timestamp": "2026-04-22T22:11:25.123Z"
+      "content": "Tienes 3 restaurantes cerca!",
+      "timestamp": "2026-05-12T19:00:01.000Z"
     }
   ]
 }
 ```
 
-Response 404 ejemplo:
+---
 
-```json
-{
-  "timestamp": "2026-04-22T22:11:24.575Z",
-  "status": 404,
-  "error": "Not Found",
-  "message": "No existe conversacion con id f47ac10b-58cc-4372-a567-0e02b2c3d479",
-  "path": "/chat/f47ac10b-58cc-4372-a567-0e02b2c3d479"
-}
-```
+### 26) GET /chat/conversations
 
-### 23) GET /chat/conversations
+Descripcion: Lista un resumen de todas las conversaciones almacenadas en MongoDB.
 
-Descripcion:
-Lista un resumen de todas las conversaciones almacenadas.
-
-Request:
-- Body: no aplica
-- Params: no aplica
-
-Response 200 ejemplo:
+Response 200:
 
 ```json
 [
   {
     "conversationId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
-    "createdAt": "2026-04-22T22:11:24.575Z",
+    "createdAt": "2026-05-12T19:00:00.000Z",
     "messageCount": 4,
-    "preview": "Hola, que restaurantes me recomiendas?"
+    "preview": "Que restaurantes hay cerca?"
   }
 ]
 ```
 
-### 24) POST /complaint/create
+---
 
-Descripcion:
-Crea una nueva queja sobre un restaurante o una promocion.
+### 27) POST /complaint/create
 
-Request body ejemplo (restaurante):
+Descripcion: Crea una queja sobre un restaurante o una promocion. Requiere que el cliente este autenticado.
+
+Headers (requerido):
+
+```
+X-Client-Id: f36d21a9-c6f5-4f7e-9ca6-fdb3e491068d
+```
+
+Request body (queja de restaurante):
 
 ```json
 {
@@ -700,7 +563,7 @@ Request body ejemplo (restaurante):
 }
 ```
 
-Request body ejemplo (promocion):
+Request body (queja de promocion):
 
 ```json
 {
@@ -710,7 +573,7 @@ Request body ejemplo (promocion):
 }
 ```
 
-Response 201 ejemplo:
+Response 201:
 
 ```json
 {
@@ -719,61 +582,54 @@ Response 201 ejemplo:
   "targetUuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
   "description": "El restaurante no vende la comida que anuncia.",
   "status": "PENDING",
-  "createdAt": "2026-05-10T12:00:00.000"
+  "createdAt": "2026-05-12T19:00:00.000"
 }
 ```
 
-### 25) GET /complaint/admin/all
+---
 
-Descripcion:
-Obtiene todas las quejas registradas.
+### 28) GET /complaint/admin/all
 
-Headers:
-- X-Admin-Id: UUID del admin autenticado (requerido)
+Descripcion: Obtiene todas las quejas registradas.
 
-Response 200 ejemplo:
+Headers: `X-Admin-Id: <uuid>`
 
-```json
-[
-  {
-    "uuid": "c3e5d321-5fa1-4a4b-9370-0d9f8cfa8ca9",
-    "type": "RESTAURANT",
-    "targetUuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
-    "description": "El restaurante no vende la comida que anuncia.",
-    "status": "PENDING",
-    "createdAt": "2026-05-10T12:00:00.000"
-  }
-]
-```
+Response 200: lista de quejas (mismo schema que create response).
 
-### 26) GET /complaint/admin/pending
+---
 
-Descripcion:
-Obtiene unicamente las quejas con estado PENDING.
+### 29) GET /complaint/admin/pending
 
-Headers:
-- X-Admin-Id: UUID del admin autenticado (requerido)
+Descripcion: Obtiene unicamente las quejas con estado `PENDING`.
 
-### 27) POST /complaint/admin/review/{id}
+Headers: `X-Admin-Id: <uuid>`
 
-Descripcion:
-Permite a un administrador revisar una queja. Si el estado es ACCEPTED, se borra logicamente el objetivo (restaurante o promocion).
+---
 
-Headers:
-- X-Admin-Id: UUID del admin autenticado (requerido)
+### 30) POST /complaint/admin/review/{id}
 
-Path param:
-- id: UUID de la queja a revisar
+Descripcion: Permite a un administrador aceptar o rechazar una queja.
 
-Request body ejemplo:
+- Si `status = "ACCEPTED"`: el restaurante o promocion objetivo es **borrado logicamente** de forma automatica.
+- Si `status = "REJECTED"`: la queja queda marcada como rechazada sin efecto adicional.
+
+Headers: `X-Admin-Id: <uuid>`
+
+Path param: `id` = UUID de la queja
+
+Request body:
 
 ```json
-{
-  "status": "ACCEPTED"
-}
+{ "status": "REJECTED" }
 ```
 
-Response 200 ejemplo:
+o
+
+```json
+{ "status": "ACCEPTED" }
+```
+
+Response 200:
 
 ```json
 {
@@ -781,9 +637,27 @@ Response 200 ejemplo:
   "type": "RESTAURANT",
   "targetUuid": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
   "description": "El restaurante no vende la comida que anuncia.",
-  "status": "ACCEPTED",
-  "createdAt": "2026-05-10T12:00:00.000"
+  "status": "REJECTED",
+  "createdAt": "2026-05-12T19:00:00.000"
 }
 ```
 
+---
 
+## Flujo de prueba rápida (orden recomendado)
+
+```
+1. POST /restaurant/registry          → crear owner
+2. POST /restaurant/create            → crear restaurante con ownerMail
+3. POST /restaurant/login             → obtener ownerId
+4. POST /promotion/restaurant/{id}    → crear promocion con ownerUuid
+5. POST /admin/create                 → bootstrap primer admin
+6. POST /admin/login                  → obtener adminId
+7. POST /admin/create + X-Admin-Id    → crear segundo admin
+8. POST /client/registry              → crear cliente (guardar uuid)
+9. POST /client/login                 → confirmar login
+10. POST /chat + X-Client-Id          → chatear (con lat/lng para cercanos)
+11. GET  /chat/history + X-Client-Id  → verificar persistencia
+12. POST /complaint/create + X-Client-Id → crear queja
+13. POST /complaint/admin/review/{id} + X-Admin-Id → rechazar/aceptar
+```

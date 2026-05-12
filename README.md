@@ -9,6 +9,7 @@ Backend REST API para **Antojitos Maps**, una plataforma de restaurantes en Boli
 - [Instalación y ejecución](#-instalación-y-ejecución)
 - [Variables de entorno](#-variables-de-entorno)
 - [Documentación de API (Swagger)](#-documentación-de-api-swagger)
+- [Modelo de autenticación](#-modelo-de-autenticación)
 - [Endpoints](#-endpoints)
 - [Chatbot con IA](#-chatbot-con-ia)
 - [Estructura del proyecto](#-estructura-del-proyecto)
@@ -19,8 +20,11 @@ Backend REST API para **Antojitos Maps**, una plataforma de restaurantes en Boli
 |---|---|---|
 | Java | 21 | Lenguaje principal |
 | Spring Boot | 3.2.4 | Framework web |
-| Spring Data JPA | 3.2.x | Acceso a datos |
-| PostgreSQL | - | Base de datos (Supabase) |
+| Spring Data JPA | 3.2.x | Acceso a datos (PostgreSQL) |
+| Spring Data MongoDB | 3.2.x | Persistencia de conversaciones de chat |
+| PostgreSQL | - | Base de datos principal (Supabase) |
+| MongoDB Atlas | - | Persistencia de historial de chat |
+| Firebase Admin SDK | 9.x | Creación y verificación de usuarios |
 | Lombok | - | Reducción de boilerplate |
 | SpringDoc OpenAPI | 2.5.0 | Documentación Swagger |
 | Cloudflare R2 (S3) | - | Almacenamiento de imágenes |
@@ -31,6 +35,8 @@ Backend REST API para **Antojitos Maps**, una plataforma de restaurantes en Boli
 - **Java 21** o superior
 - **Maven 3.8+** (o usar el wrapper `./mvnw` incluido)
 - Acceso a una base de datos **PostgreSQL**
+- Instancia de **MongoDB** (Atlas o local) para el historial de chat
+- Proyecto de **Firebase** con una cuenta de servicio configurada
 - (Opcional) API Key de **Mistral AI** para el chatbot
 
 ## Instalación y ejecución
@@ -60,7 +66,7 @@ El servidor inicia en **http://localhost:8080**
 Crear un archivo `.env` en la carpeta `maps-backend/` con las siguientes variables:
 
 ```properties
-# ── Base de datos ──
+# ── Base de datos (PostgreSQL) ──
 APP_DB_URL=jdbc:postgresql://host:puerto/database?sslmode=require
 APP_DB_USERNAME=tu_usuario
 APP_DB_PASSWORD=tu_password
@@ -72,8 +78,17 @@ APP_JPA_DDL_AUTO=none
 APP_JPA_SHOW_SQL=true
 APP_DB_INIT_MODE=never
 
+# ── MongoDB (historial de chat) ──
+MONGO_URI=mongodb+srv://usuario:password@cluster.mongodb.net/
+
 # ── CORS ──
 APP_CORS_ALLOWED_ORIGINS=*
+
+# ── Firebase Admin SDK ──
+FIREBASE_CREDENTIALS_BASE64=<base64 del JSON de cuenta de servicio>
+
+# ── Firebase Web API Key (para autenticar email/password server-side) ──
+FIREBASE_WEB_API_KEY=AIzaSy...
 
 # ── Cloudflare R2 (almacenamiento de imágenes) ──
 APP_R2_S3_API_URL=https://<account-id>.r2.cloudflarestorage.com
@@ -88,10 +103,11 @@ APP_R2_UPLOAD_ENABLED=true
 APP_MISTRAL_API_KEY=tu_api_key_de_mistral
 APP_CHAT_SYSTEM_PROMPT_FILE=system_prompt.txt
 APP_CHAT_CONTEXT_FILE=context.json
-APP_CHAT_CONVERSATIONS_FILE=conversations.json
 ```
 
 > **Nota:** El archivo `.env` está en `.gitignore` y nunca se sube al repositorio.
+
+> **Firebase:** El valor de `FIREBASE_CREDENTIALS_BASE64` se obtiene codificando en base64 el archivo JSON de la cuenta de servicio de Firebase: `base64 -w 0 serviceAccount.json`
 
 ## Documentación de API (Swagger)
 
@@ -106,10 +122,36 @@ Con el servidor en ejecución, accede a la documentación interactiva:
 La documentación Swagger incluye todos los endpoints organizados por tags:
 - **Sistema** — Health checks
 - **Restaurantes** — CRUD de restaurantes
-- **Restaurant Auth** — Login/registro de owners
+- **Restaurant Auth** — Login/registro de owners (sin Firebase en el frontend)
+- **Client Auth** — Login/registro de clientes (sin Firebase en el frontend)
 - **Admin** — Gestión de administradores
+- **Quejas** — Gestión de quejas de restaurantes y promociones
 - **Promotions** — Promociones por restaurante
-- **Chatbot** — Chatbot con IA (Mistral AI)
+- **Chatbot** — Chatbot con IA (Mistral AI + persistencia MongoDB)
+
+## Modelo de autenticación
+
+> **Importante:** A partir de la versión actual, **el frontend NO necesita el SDK de Firebase**. Todo el ciclo de autenticación (creación de usuario, verificación de credenciales) es gestionado directamente por el backend.
+
+### Flujo simplificado
+
+```
+Frontend          Backend              Firebase
+   |                  |                    |
+   |-- POST /login --> |                   |
+   |   {email, pwd}   |-- REST API Auth -->|
+   |                  |<-- token/OK -------|
+   |                  |-- busca en BD ---->|
+   |<-- {uuid, ...} --|                   |
+```
+
+### Headers de autorización por rol
+
+| Rol | Header requerido | Obtenido en |
+|---|---|---|
+| **Cliente** | `X-Client-Id: <uuid>` | Respuesta de `/client/login` o `/client/registry` |
+| **Owner** | *(sin header, usa ownerMail/ownerUuid en body)* | Respuesta de `/restaurant/login` |
+| **Admin** | `X-Admin-Id: <uuid>` | Respuesta de `/admin/login` |
 
 ## Endpoints
 
@@ -127,99 +169,89 @@ La documentación Swagger incluye todos los endpoints organizados por tags:
 |--------|----------|-------------|
 | `GET` | `/restaurant/all` | Listar todos los restaurantes |
 | `GET` | `/restaurant/get/{id}` | Obtener restaurante por UUID |
-| `POST` | `/restaurant/create` | Crear restaurante (requiere owner) |
+| `POST` | `/restaurant/create` | Crear restaurante (requiere ownerMail en body) |
 | `POST` | `/restaurant/upload-image` | Subir imagen a Cloudflare R2 |
 | `DELETE` | `/restaurant/delete/{id}` | Eliminar restaurante |
 
-### Autenticación y Seguridad (Firebase & JWT)
+### Autenticación de Owners
 
-El sistema utiliza **Firebase Authentication** para la gestión segura de identidades:
-- Los clientes, dueños de restaurantes (Owners) y Administradores inician sesión directamente con Firebase en el cliente.
-- El cliente envía el JWT de Firebase (ID Token) al backend.
-- El backend valida la firma del token utilizando el **Firebase Admin SDK**.
-- **Endpoints Protegidos**: Todas las rutas sensibles requieren autorización. Por ejemplo, rutas `/admin/*` requieren el header `X-Admin-Id`, las rutas de chat requieren `X-Client-Id` y las operaciones de restaurantes requieren validación del token del owner.
+> El frontend envía **email y password directamente**. El backend gestiona Firebase internamente.
 
-### Clientes
+| Método | Endpoint | Body | Descripción |
+|--------|----------|------|-------------|
+| `POST` | `/restaurant/registry` | `{email, password}` | Crea el owner en Firebase y lo registra en BD |
+| `POST` | `/restaurant/login` | `{email, password}` | Autentica contra Firebase y devuelve `ownerId` + `restaurantIds` |
+| `POST` | `/restaurant/logout` | `{mail}` | Registra logout en auditoría |
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `POST` | `/client/login` | Login de cliente (valida token Firebase) |
-| `POST` | `/client/registry` | Registrar nuevo cliente |
-| `POST` | `/client/logout` | Logout de cliente |
+### Autenticación de Clientes
 
-### Autenticación (Owners)
+> El frontend envía **email y password directamente**. El backend gestiona Firebase internamente.
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `POST` | `/restaurant/login` | Login de owner (valida token Firebase) |
-| `POST` | `/restaurant/registry` | Registrar nuevo owner |
-| `POST` | `/restaurant/logout` | Logout (auditoría) |
+| Método | Endpoint | Body / Header | Descripción |
+|--------|----------|---------------|-------------|
+| `POST` | `/client/registry` | `{email, password, fullName, phone}` | Crea el cliente en Firebase y lo registra en BD |
+| `POST` | `/client/login` | `{email, password}` | Autentica contra Firebase y devuelve `uuid` del cliente |
+| `POST` | `/client/logout` | `{mail}` | Registra logout en auditoría |
 
 ### Administración
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `POST` | `/admin/login` | Login de admin (valida token Firebase) |
-| `POST` | `/admin/create` | Crear admin en BD y Firebase (requiere auth si ya existe admin) |
-| `PUT` | `/admin/edit` | Editar perfil propio y sincronizar con Firebase |
-| `DELETE` | `/admin/delete/{id}` | Borrado lógico de admin |
-| `GET` | `/admin/all` | Listar admins activos |
-| `GET` | `/admin/deleted` | Listar admins eliminados |
-| `GET` | `/admin/restaurants` | Listar restaurantes (moderación) |
-| `PATCH` | `/admin/restaurants/{id}/block` | Bloquear/desbloquear restaurante |
+> Requiere header `X-Admin-Id` en todas las rutas excepto `/admin/login` y el bootstrap inicial de `/admin/create`.
+
+| Método | Endpoint | Header | Descripción |
+|--------|----------|--------|-------------|
+| `POST` | `/admin/login` | — | Login con `{email, password}`. Firebase gestionado por el backend |
+| `POST` | `/admin/create` | `X-Admin-Id` (opcional para bootstrap) | Crea admin en Firebase y BD. Sin header solo si no existe ningún admin |
+| `PUT` | `/admin/edit` | `X-Admin-Id` | Editar perfil propio |
+| `DELETE` | `/admin/delete/{id}` | `X-Admin-Id` | Borrado lógico de admin |
+| `GET` | `/admin/all` | — | Listar admins activos |
+| `GET` | `/admin/deleted` | — | Listar admins eliminados |
+| `GET` | `/admin/restaurants` | `X-Admin-Id` | Listar restaurantes (moderación) |
+| `PATCH` | `/admin/restaurants/{id}/block` | `X-Admin-Id` | Bloquear/desbloquear restaurante |
 
 ### Quejas (Complaints)
 
-Los usuarios pueden reportar restaurantes falsos o promociones engañosas. Los administradores revisan y deciden si penalizar (borrado lógico).
+Los usuarios registrados pueden reportar restaurantes o promociones. Los administradores revisan y deciden si aceptar (lo que borra lógicamente el objetivo) o rechazar.
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `POST` | `/complaint/create` | Crear queja de restaurante o promoción (Público) |
-| `GET` | `/complaint/admin/all` | Ver todas las quejas (Solo admin) |
-| `GET` | `/complaint/admin/pending` | Ver quejas pendientes (Solo admin) |
-| `POST` | `/complaint/admin/review/{id}`| Aceptar o rechazar queja (Aceptar implica borrado lógico automático del restaurante o promoción) |
+| Método | Endpoint | Header | Descripción |
+|--------|----------|--------|-------------|
+| `POST` | `/complaint/create` | `X-Client-Id` | Crear queja de restaurante (`type: RESTAURANT`) o promoción (`type: PROMOTION`) |
+| `GET` | `/complaint/admin/all` | `X-Admin-Id` | Ver todas las quejas |
+| `GET` | `/complaint/admin/pending` | `X-Admin-Id` | Ver quejas en estado `PENDING` |
+| `POST` | `/complaint/admin/review/{id}` | `X-Admin-Id` | Revisar queja. Body: `{status: "ACCEPTED" \| "REJECTED"}` |
+
+> Si el admin acepta (`ACCEPTED`), el restaurante o promoción objetivo es borrado lógicamente de forma automática.
 
 ### Promociones
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
-| `GET` | `/promotion/restaurant/{restaurantId}` | Listar promociones activas |
-| `POST` | `/promotion/restaurant/{restaurantId}` | Crear promoción |
+| `GET` | `/promotion/restaurant/{restaurantId}` | Listar promociones activas de un restaurante |
+| `POST` | `/promotion/restaurant/{restaurantId}` | Crear promoción (requiere `ownerUuid` o `ownerMail` en body) |
 
 ### Chatbot con IA
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `POST` | `/chat` | Enviar mensaje al chatbot (acepta lat/lng para recomendaciones cercanas) |
-| `GET` | `/chat/{conversationId}` | Obtener historial de conversación |
-| `GET` | `/chat/conversations` | Listar todas las conversaciones |
+> Las conversaciones se persisten en **MongoDB** vinculadas al `X-Client-Id` del cliente. Usuarios anónimos también pueden chatear (sin persistencia por usuario).
+
+| Método | Endpoint | Header | Descripción |
+|--------|----------|--------|-------------|
+| `POST` | `/chat` | `X-Client-Id` (opcional) | Enviar mensaje. Acepta `latitude`/`longitude` para recomendaciones cercanas |
+| `GET` | `/chat/history` | `X-Client-Id` | Obtener historial completo de conversación del cliente |
+| `GET` | `/chat/conversations` | — | Listar resumen de todas las conversaciones |
 
 > Para documentación detallada de cada endpoint (request/response), ver [POSTMAN.md](maps-backend/POSTMAN.md)
 
 ## Chatbot con IA
 
-El chatbot utiliza **Mistral AI** como motor de inteligencia artificial.
+El chatbot utiliza **Mistral AI** como motor de inteligencia artificial, con historial persistido en **MongoDB**.
 
 ### Características
 
 - Envío y recepción de mensajes vía API REST (`POST /chat`)
-- Cada conversación tiene un **UUID único**
-- Historial de conversaciones **persistido en archivo JSON**
+- Historial **persistido en MongoDB** por cliente (`X-Client-Id`)
+- Usuarios anónimos mantienen conversación dentro de la misma sesión
 - **Contexto estructurado** (`context.json`) con rol, reglas y dominio del asistente
 - **System prompt** (`system_prompt.txt`) personalizado: respuestas cortas, amigables y en español
 - **Recomendaciones por geolocalización**: si el frontend envía `latitude` y `longitude`, el chatbot consulta la BD y recomienda restaurantes reales dentro de un **radio de 5 km** usando la fórmula de Haversine
-- API key segura (nunca expuesta al frontend, configurada por variable de entorno)
-
-### Contexto del chatbot
-
-El comportamiento del chatbot se define mediante dos archivos:
-
-| Archivo | Propósito |
-|---------|-----------|
-| `context.json` | Contexto estructurado JSON con rol del asistente, dominio (restaurantes/promociones), reglas de comportamiento y ejemplos de respuesta |
-| `system_prompt.txt` | Prompt en lenguaje natural que define la personalidad: tono amigable, respuestas cortas (2-3 oraciones), uso de emojis, solo dominio gastronómico |
-
-Ambos archivos se cargan al iniciar el servidor y se inyectan en cada request a Mistral AI.
 
 ### Recomendaciones por ubicación
 
@@ -233,36 +265,37 @@ Cuando el frontend envía las coordenadas del usuario:
 
 ### Configuración
 
-| Variable de entorno | Descripción | Default |
-|---------------------|-------------|---------|
-| `APP_MISTRAL_API_KEY` | API Key de Mistral AI | (requerida) |
-| `APP_MISTRAL_API_URL` | URL del endpoint de Mistral | `https://api.mistral.ai/v1/chat/completions` |
-| `APP_MISTRAL_MODEL` | Modelo de Mistral a usar | `mistral-large-latest` |
-| `APP_CHAT_SYSTEM_PROMPT_FILE` | Ruta al archivo de system prompt | `system_prompt.txt` |
-| `APP_CHAT_CONTEXT_FILE` | Ruta al archivo de contexto JSON | `context.json` |
-| `APP_CHAT_CONVERSATIONS_FILE` | Ruta al archivo de conversaciones | `conversations.json` |
+| Variable de entorno | Descripción | Requerida |
+|---------------------|-------------|-----------|
+| `APP_MISTRAL_API_KEY` | API Key de Mistral AI | ✅ |
+| `MONGO_URI` | URI de conexión a MongoDB | ✅ |
+| `APP_MISTRAL_API_URL` | URL del endpoint de Mistral | No (tiene default) |
+| `APP_MISTRAL_MODEL` | Modelo de Mistral a usar | No (default: `mistral-large-latest`) |
 
 ## Estructura del proyecto
 
 ```
 maps-backend/
 ├── src/main/java/com/antojito/maps_backend/
-│   ├── config/              # Configuraciones (OpenAPI, Filtros)
+│   ├── config/              # Configuraciones (Firebase, OpenAPI, MongoDB)
 │   ├── controller/          # REST Controllers
-│   │   ├── AdminController.java
-│   │   ├── AuthController.java
-│   │   ├── ChatController.java
-│   │   ├── PromotionController.java
-│   │   ├── RestauranteController.java
-│   │   └── SystemController.java
+│   │   ├── AdminController.java      # Auth + gestión de admins
+│   │   ├── AuthController.java       # Auth de owners (restaurant/login, registry)
+│   │   ├── ChatController.java       # Chatbot IA
+│   │   ├── ClientController.java     # Auth de clientes
+│   │   ├── ComplaintController.java  # Quejas
+│   │   ├── PromotionController.java  # Promociones
+│   │   ├── RestauranteController.java# CRUD restaurantes
+│   │   └── SystemController.java     # Health checks
 │   ├── dto/                 # Data Transfer Objects
 │   ├── exception/           # Manejo global de errores
-│   ├── model/               # Entidades JPA
-│   ├── repository/          # Repositorios Spring Data
+│   ├── model/               # Entidades JPA + documentos MongoDB
+│   ├── repository/          # Repositorios Spring Data (JPA + MongoDB)
 │   ├── service/             # Lógica de negocio
 │   │   ├── AdminService.java
 │   │   ├── AuditLogService.java
 │   │   ├── ChatService.java
+│   │   ├── ComplaintService.java
 │   │   ├── PromotionService.java
 │   │   ├── R2StorageService.java
 │   │   └── RestauranteService.java
@@ -272,9 +305,7 @@ maps-backend/
 │   └── schema.sql
 ├── context.json             # Contexto estructurado del chatbot (rol, reglas, dominio)
 ├── system_prompt.txt        # System prompt del chatbot (personalidad, tono)
-├── conversations.json       # Historial de conversaciones (generado en runtime)
-├── POSTMAN.md               # Guía detallada de endpoints
+├── POSTMAN.md               # Guía detallada de endpoints con ejemplos
 ├── pom.xml
 └── .env                     # Variables de entorno (no versionado)
 ```
-
