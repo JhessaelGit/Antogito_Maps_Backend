@@ -51,11 +51,17 @@ public class ChatController {
             @RequestHeader(HEADER_CLIENT_ID) String clientIdHeader,
             @Valid @RequestBody ChatRequest request
     ) {
-        // Validamos que el clientIdHeader sea un UUID valido (opcional, pero buena practica)
-        java.util.UUID.fromString(clientIdHeader);
+        String conversationId;
+        try {
+            java.util.UUID.fromString(clientIdHeader);
+            conversationId = clientIdHeader;
+        } catch (IllegalArgumentException e) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "X-Client-Id debe ser un UUID valido");
+        }
 
         ChatResponse chatResponse = chatService.chat(
-                clientIdHeader,
+                conversationId,
                 request.getMessage(),
                 request.getLatitude(),
                 request.getLongitude());
