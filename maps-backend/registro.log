@@ -49,3 +49,27 @@ LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:21:19.87602990
 LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:29:18.480311900
 LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:29:55.394059200
 LOGIN | email=owner.sabor@antojitosmaps.com | fecha=2026-04-21T16:34:14.341695200
+OWNER_REGISTRO | mail=salteneria@test.com | fecha=2026-05-12T15:28:28.699132800
+LOGIN | email=salteneria@test.com | fecha=2026-05-12T15:28:29.693763900
+OWNER_REGISTRO | mail=sushizen@test.com | fecha=2026-05-12T15:28:31.466916600
+RESTAURANTE_REGISTRO | uuid=0ffb9d39-6608-4008-b027-fd61877f0e8f name=Sushi Zen | fecha=2026-05-12T15:28:32.281011900
+OWNER_REGISTRY | restaurantUuid=0ffb9d39-6608-4008-b027-fd61877f0e8f mail=sushizen@test.com | fecha=2026-05-12T15:28:32.281011900
+LOGIN | email=sushizen@test.com | fecha=2026-05-12T15:28:33.375928500
+OWNER_REGISTRO | mail=burger@test.com | fecha=2026-05-12T15:28:35.183158500
+RESTAURANTE_REGISTRO | uuid=661f77ea-8c92-4ab3-b847-84e2f62bb041 name=Burger House | fecha=2026-05-12T15:28:35.948519300
+OWNER_REGISTRY | restaurantUuid=661f77ea-8c92-4ab3-b847-84e2f62bb041 mail=burger@test.com | fecha=2026-05-12T15:28:35.948519300
+LOGIN | email=burger@test.com | fecha=2026-05-12T15:28:37.066200100
+LOGIN | email=salteneria@test.com | fecha=2026-05-12T15:29:32.951315400
+RESTAURANTE_REGISTRO | uuid=62acf317-51f0-4602-b38c-33fd398e11c1 name=Sushi Zen 2 | fecha=2026-05-12T15:31:20.740826500
+OWNER_REGISTRY | restaurantUuid=62acf317-51f0-4602-b38c-33fd398e11c1 mail=sushizen@test.com | fecha=2026-05-12T15:31:20.740826500
+RESTAURANTE_REGISTRO | uuid=e5699d33-ef1c-49ec-acc1-776520318162 name=La Salteneria | fecha=2026-05-12T15:31:21.801352
+OWNER_REGISTRY | restaurantUuid=e5699d33-ef1c-49ec-acc1-776520318162 mail=salteneria@test.com | fecha=2026-05-12T15:31:21.802358
+ADMIN_CREATE | actorAdminId=null createdMail=admin@antojitos.com | fecha=2026-05-12T15:32:19.913048100
+LOGIN | email=cliente1@test.com | fecha=2026-05-12T15:32:22.615043300
+LOGIN | email=cliente2@test.com | fecha=2026-05-12T15:32:24.639472100
+LOGIN | email=cliente1@test.com | fecha=2026-05-12T15:32:25.246962400
+LOGIN | email=cliente2@test.com | fecha=2026-05-12T15:32:25.851029700
+ADMIN_LOGIN | mail=admin@antojitos.com | fecha=2026-05-12T15:35:31.425626300
+ADMIN_CREATE | actorAdminId=bfed6600-ad61-4fe7-96e2-0ebb342bbafa createdMail=admin2@antojitos.com | fecha=2026-05-12T15:35:34.157228100
+LOGIN | email=douglasdfmc@gmail.com | fecha=2026-05-12T15:57:40.861004800
+LOGIN | email=douglasdfmc@gmail.com | fecha=2026-05-12T15:58:51.254876100
