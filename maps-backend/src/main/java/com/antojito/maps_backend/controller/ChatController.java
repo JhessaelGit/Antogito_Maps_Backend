@@ -48,16 +48,19 @@ public class ChatController {
             @ApiResponse(responseCode = "502", description = "Error al comunicarse con Mistral AI")
     })
     public ResponseEntity<ChatResponse> chat(
-            @RequestHeader(HEADER_CLIENT_ID) String clientIdHeader,
+            @RequestHeader(value = HEADER_CLIENT_ID, required = false) String clientIdHeader,
             @Valid @RequestBody ChatRequest request
     ) {
-        String conversationId;
-        try {
-            java.util.UUID.fromString(clientIdHeader);
-            conversationId = clientIdHeader;
-        } catch (IllegalArgumentException e) {
-            throw new org.springframework.web.server.ResponseStatusException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST, "X-Client-Id debe ser un UUID valido");
+        // Si viene X-Client-Id valido se usa para persistencia por usuario, sino se genera un UUID anonimo
+        String conversationId = null;
+        if (clientIdHeader != null && !clientIdHeader.isBlank()) {
+            try {
+                java.util.UUID.fromString(clientIdHeader);
+                conversationId = clientIdHeader;
+            } catch (IllegalArgumentException e) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST, "X-Client-Id debe ser un UUID valido");
+            }
         }
 
         ChatResponse chatResponse = chatService.chat(

@@ -96,24 +96,28 @@ public class ChatService {
 
         saveConversationsToFile();
 
-        // Persist to MongoDB
-        ChatConversation mongoConversation = chatRepository
-                .findByConversationId(conversationId)
-                .orElse(new ChatConversation());
+        // Persist to MongoDB (optional - si falla no interrumpe la respuesta)
+        try {
+            ChatConversation mongoConversation = chatRepository
+                    .findByConversationId(conversationId)
+                    .orElse(new ChatConversation());
 
-        mongoConversation.setConversationId(conversationId);
+            mongoConversation.setConversationId(conversationId);
 
-        if (mongoConversation.getCreatedAt() == null) {
-            mongoConversation.setCreatedAt(conversation.createdAt);
+            if (mongoConversation.getCreatedAt() == null) {
+                mongoConversation.setCreatedAt(conversation.createdAt);
+            }
+
+            List<com.antojito.maps_backend.model.Message> mongoMessages =
+                    conversation.messages.stream()
+                            .map(m -> new com.antojito.maps_backend.model.Message(m.role, m.content, m.timestamp))
+                            .toList();
+
+            mongoConversation.setMessages(mongoMessages);
+            chatRepository.save(mongoConversation);
+        } catch (Exception mongoEx) {
+            logger.warn("No se pudo persistir conversacion en MongoDB: {}", mongoEx.getMessage());
         }
-
-        List<com.antojito.maps_backend.model.Message> mongoMessages =
-                conversation.messages.stream()
-                        .map(m -> new com.antojito.maps_backend.model.Message(m.role, m.content, m.timestamp))
-                        .toList();
-
-        mongoConversation.setMessages(mongoMessages);
-        chatRepository.save(mongoConversation);
 
         return ChatResponse.builder()
                 .conversationId(conversationId)
