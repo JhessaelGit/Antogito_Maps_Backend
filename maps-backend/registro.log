@@ -73,3 +73,5 @@ ADMIN_LOGIN | mail=admin@antojitos.com | fecha=2026-05-12T15:35:31.425626300
 ADMIN_CREATE | actorAdminId=bfed6600-ad61-4fe7-96e2-0ebb342bbafa createdMail=admin2@antojitos.com | fecha=2026-05-12T15:35:34.157228100
 LOGIN | email=douglasdfmc@gmail.com | fecha=2026-05-12T15:57:40.861004800
 LOGIN | email=douglasdfmc@gmail.com | fecha=2026-05-12T15:58:51.254876100
+LOGIN | email=cliente1@test.com | fecha=2026-05-19T17:15:18.312443500
+ADMIN_LOGIN | mail=admin@antojitos.com | fecha=2026-05-19T17:16:02.719479

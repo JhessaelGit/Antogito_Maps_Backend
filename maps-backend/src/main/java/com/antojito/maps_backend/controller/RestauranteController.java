@@ -42,7 +42,7 @@ public class RestauranteController {
     }
 
     @GetMapping("/all")
-    @Operation(summary = "Listar restaurantes", description = "Obtiene la lista completa de restaurantes")
+    @Operation(summary = "Listar restaurantes", description = "Obtiene restaurantes activos visibles en el mapa")
     @ApiResponse(
             responseCode = "200",
             description = "Listado obtenido correctamente",
