@@ -74,6 +74,29 @@ create table client (
     phone varchar(20)
 );
 
+create table loyalty_accounts (
+    uuid uuid primary key,
+    client_uuid uuid not null unique,
+    accumulated_points integer not null default 0,
+    current_level varchar(50) not null,
+    constraint fk_loyalty_client
+        foreign key (client_uuid)
+            references client (uuid)
+            on delete cascade
+);
+
+create table points_history (
+    uuid uuid primary key,
+    client_uuid uuid not null,
+    points integer not null,
+    reason varchar(150) not null,
+    created_at timestamp not null default current_timestamp,
+    constraint fk_points_history_client
+        foreign key (client_uuid)
+            references client (uuid)
+            on delete cascade
+);
+
 create table complaint (
     uuid uuid primary key,
     client_uuid uuid not null,
