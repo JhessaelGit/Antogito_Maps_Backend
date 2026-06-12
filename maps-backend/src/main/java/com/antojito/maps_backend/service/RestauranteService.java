@@ -27,7 +27,7 @@ public class RestauranteService {
 
     @Transactional(readOnly = true)
     public List<RestauranteResponse> findAll() {
-        return repository.findAll().stream().map(this::toResponse).toList();
+        return repository.findByIsBlockedFalse().stream().map(this::toResponse).toList();
     }
 
     @Transactional(readOnly = true)
