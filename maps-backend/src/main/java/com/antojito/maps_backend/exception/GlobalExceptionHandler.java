@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -63,6 +64,18 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(statusCode)
                 .body(buildError(status, message, request.getRequestURI(), null));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException exception,
+            HttpServletRequest request) {
+        String parameterName = exception.getName();
+        String rejectedValue = String.valueOf(exception.getValue());
+        String message = "El valor '" + rejectedValue + "' para '" + parameterName + "' es invalido";
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(buildError(HttpStatus.BAD_REQUEST, message, request.getRequestURI(), null));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)

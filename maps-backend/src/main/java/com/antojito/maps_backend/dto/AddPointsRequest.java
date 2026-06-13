@@ -1,6 +1,7 @@
 package com.antojito.maps_backend.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;
@@ -14,6 +15,7 @@ public class AddPointsRequest {
     private UUID clientId;
 
     @NotNull(message = "La cantidad de puntos es requerida")
+    @Min(value = 1, message = "Los puntos deben ser mayores a 0")
     @Schema(description = "Puntos a agregar", example = "50")
     private Integer points;
 
