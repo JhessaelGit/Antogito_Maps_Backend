@@ -5,6 +5,8 @@ drop table if exists admin cascade;
 drop table if exists restaurant cascade;
 drop table if exists restaurantes cascade;
 drop table if exists complaint cascade;
+drop table if exists points_history cascade;
+drop table if exists loyalty_accounts cascade;
 drop table if exists client cascade;
 
 create table restaurant (
@@ -82,7 +84,11 @@ create table loyalty_accounts (
     constraint fk_loyalty_client
         foreign key (client_uuid)
             references client (uuid)
-            on delete cascade
+            on delete cascade,
+    constraint chk_loyalty_points
+        check (accumulated_points >= 0),
+    constraint chk_loyalty_level
+        check (current_level in ('BRONCE', 'PLATA', 'ORO'))
 );
 
 create table points_history (
@@ -94,7 +100,9 @@ create table points_history (
     constraint fk_points_history_client
         foreign key (client_uuid)
             references client (uuid)
-            on delete cascade
+            on delete cascade,
+    constraint chk_points_history_points
+        check (points > 0)
 );
 
 create table complaint (

@@ -52,7 +52,7 @@ public class LoyaltyService {
         return toResponse(loyaltyAccount);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoyaltyResponse getProfile(UUID clientId) {
         LoyaltyAccount loyaltyAccount = loyaltyAccountRepository.findByClient_Uuid(clientId)
                 .orElseGet(() -> loyaltyAccountRepository.save(createLoyaltyAccount(getClient(clientId))));
