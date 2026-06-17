@@ -127,6 +127,8 @@ La documentación Swagger incluye todos los endpoints organizados por tags:
 - **Admin** — Gestión de administradores
 - **Quejas** — Gestión de quejas de restaurantes y promociones
 - **Promotions** — Promociones por restaurante
+- **Loyalty** — Cuentas de fidelizacion y acumulacion de puntos
+- **Coupons** — CRUD de cupones por restaurante
 - **Chatbot** — Chatbot con IA (Mistral AI + persistencia MongoDB)
 
 ## Modelo de autenticación
@@ -228,6 +230,129 @@ Los usuarios registrados pueden reportar restaurantes o promociones. Los adminis
 | `GET` | `/promotion/restaurant/{restaurantId}` | Listar promociones activas de un restaurante |
 | `POST` | `/promotion/restaurant/{restaurantId}` | Crear promoción (requiere `ownerUuid` o `ownerMail` en body) |
 
+Tablas relacionadas: `promotions`, `restaurant`, `owner_account`, `owner_restaurant`.
+
+Body para crear:
+
+```json
+{
+  "ownerUuid": "20a63174-3799-4e7f-98c7-7f2af9e2c42c",
+  "title": "2x1 en saltenas",
+  "description": "Solo de lunes a viernes",
+  "percentDiscount": 25.00,
+  "dateStartPromotion": "2026-05-01",
+  "dateEndPromotion": "2026-08-31",
+  "isActivePromotion": true
+}
+```
+
+### Fidelizacion
+
+Modulo conectado a las tablas `loyalty_accounts` y `points_history`.
+
+| Metodo | Endpoint | Tabla principal | Descripcion |
+|--------|----------|-----------------|-------------|
+| `GET` | `/api/loyalty/{clientId}` | `loyalty_accounts` | Obtiene el perfil de fidelizacion del cliente. Si no existe cuenta, crea una en nivel `BRONCE` con 0 puntos |
+| `POST` | `/api/loyalty/add-points` | `loyalty_accounts`, `points_history` | Suma puntos al cliente y registra el movimiento en historial |
+
+Body para sumar puntos:
+
+```json
+{
+  "clientId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "points": 50,
+  "reason": "Compra de producto"
+}
+```
+
+Response:
+
+```json
+{
+  "clientId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "points": 120,
+  "level": "PLATA"
+}
+```
+
+Reglas implementadas:
+- `points` debe ser mayor a 0.
+- El cliente debe existir en `client`.
+- Cada suma crea un registro en `points_history`.
+- Niveles: `BRONCE` de 0 a 99 puntos, `PLATA` de 100 a 299, `ORO` desde 300.
+
+### Cupones
+
+Modulo conectado a la tabla `coupons`. Las operaciones de creacion, edicion, pausa y eliminacion validan que el owner exista y este relacionado con el restaurante en `owner_restaurant`.
+
+| Metodo | Endpoint | Tabla principal | Descripcion |
+|--------|----------|-----------------|-------------|
+| `GET` | `/coupon/restaurant/{restaurantId}` | `coupons` | Lista todos los cupones de un restaurante |
+| `GET` | `/coupon/restaurant/{restaurantId}/{couponId}` | `coupons` | Obtiene un cupon especifico del restaurante |
+| `POST` | `/coupon/restaurant/{restaurantId}` | `coupons` | Crea un cupon para el restaurante |
+| `PUT` | `/coupon/restaurant/{restaurantId}/{couponId}` | `coupons` | Edita un cupon existente |
+| `PATCH` | `/coupon/restaurant/{restaurantId}/{couponId}/pause` | `coupons` | Pausa un cupon cambiando su estado a `PAUSED` |
+| `DELETE` | `/coupon/restaurant/{restaurantId}/{couponId}` | `coupons` | Elimina un cupon |
+
+Tablas relacionadas: `coupons`, `restaurant`, `client`, `owner_account`, `owner_restaurant`.
+
+Body para crear o editar:
+
+```json
+{
+  "ownerUuid": "20a63174-3799-4e7f-98c7-7f2af9e2c42c",
+  "clientId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "name": "Descuento de bienvenida",
+  "description": "Valido en compras mayores a 50 Bs",
+  "startDate": "2026-06-20",
+  "expirationDate": "2026-06-30",
+  "maxQuantity": 100,
+  "discountType": "PERCENTAGE",
+  "status": "ACTIVE",
+  "qrCode": "QR-COUPON-001"
+}
+```
+
+Body para pausar o eliminar:
+
+```json
+{
+  "ownerUuid": "20a63174-3799-4e7f-98c7-7f2af9e2c42c"
+}
+```
+
+Tambien se puede usar `ownerMail` en lugar de `ownerUuid`.
+
+Response:
+
+```json
+{
+  "uuid": "6f03af25-8da3-4258-b0b6-16e82fd417f0",
+  "restaurantId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "clientId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "name": "Descuento de bienvenida",
+  "description": "Valido en compras mayores a 50 Bs",
+  "startDate": "2026-06-20",
+  "expirationDate": "2026-06-30",
+  "maxQuantity": 100,
+  "discountType": "PERCENTAGE",
+  "status": "ACTIVE",
+  "qrCode": "QR-COUPON-001",
+  "createdAt": "2026-06-17T19:00:00"
+}
+```
+
+Reglas implementadas:
+- El restaurante debe existir en `restaurant`.
+- El owner debe existir en `owner_account`.
+- El owner debe estar vinculado al restaurante en `owner_restaurant`.
+- Si se envia `clientId`, el cliente debe existir en `client`.
+- `expirationDate` no puede ser anterior a `startDate`.
+- No se permite crear o editar un cupon expirado.
+- No se permite crear o editar un cupon agotado (`maxQuantity <= 0`).
+- No se permite crear o editar con estado `EXPIRED` o `SOLD_OUT`.
+- Acciones criticas registradas en `registro.log`: creacion, edicion, pausa y eliminacion.
+
 ### Chatbot con IA
 
 > Las conversaciones se persisten en **MongoDB** vinculadas al `X-Client-Id` del cliente. Usuarios anónimos también pueden chatear (sin persistencia por usuario).
@@ -284,6 +409,8 @@ maps-backend/
 │   │   ├── ChatController.java       # Chatbot IA
 │   │   ├── ClientController.java     # Auth de clientes
 │   │   ├── ComplaintController.java  # Quejas
+│   │   ├── CouponController.java     # CRUD cupones
+│   │   ├── LoyaltyController.java    # Fidelizacion
 │   │   ├── PromotionController.java  # Promociones
 │   │   ├── RestauranteController.java# CRUD restaurantes
 │   │   └── SystemController.java     # Health checks
@@ -296,6 +423,8 @@ maps-backend/
 │   │   ├── AuditLogService.java
 │   │   ├── ChatService.java
 │   │   ├── ComplaintService.java
+│   │   ├── CouponService.java
+│   │   ├── LoyaltyService.java
 │   │   ├── PromotionService.java
 │   │   ├── R2StorageService.java
 │   │   └── RestauranteService.java

@@ -1,4 +1,5 @@
 drop table if exists promotions cascade;
+drop table if exists coupons cascade;
 drop table if exists owner_restaurant cascade;
 drop table if exists owner_account cascade;
 drop table if exists admin cascade;
@@ -74,6 +75,35 @@ create table client (
     mail varchar(150) not null unique,
     full_name varchar(150) not null,
     phone varchar(20)
+);
+
+create table coupons (
+    uuid uuid primary key,
+    restaurant_uuid uuid not null,
+    client_uuid uuid,
+    name varchar(120) not null,
+    description varchar(500),
+    start_date date not null,
+    expiration_date date not null,
+    max_quantity integer not null,
+    discount_type varchar(50) not null,
+    status varchar(50) not null default 'ACTIVE',
+    qr_code varchar(500),
+    created_at timestamp not null default current_timestamp,
+    constraint fk_coupons_restaurant
+        foreign key (restaurant_uuid)
+            references restaurant (uuid)
+            on delete cascade,
+    constraint fk_coupons_client
+        foreign key (client_uuid)
+            references client (uuid)
+            on delete set null,
+    constraint chk_coupons_dates
+        check (expiration_date >= start_date),
+    constraint chk_coupons_quantity
+        check (max_quantity > 0),
+    constraint chk_coupons_status
+        check (status in ('ACTIVE', 'PAUSED', 'EXPIRED', 'SOLD_OUT'))
 );
 
 create table loyalty_accounts (
