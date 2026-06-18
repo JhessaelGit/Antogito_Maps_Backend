@@ -1,4 +1,5 @@
 drop table if exists promotions cascade;
+drop table if exists claimed_coupons cascade;
 drop table if exists coupons cascade;
 drop table if exists owner_restaurant cascade;
 drop table if exists owner_account cascade;
@@ -104,6 +105,28 @@ create table coupons (
         check (max_quantity > 0),
     constraint chk_coupons_status
         check (status in ('ACTIVE', 'PAUSED', 'EXPIRED', 'SOLD_OUT'))
+);
+
+create table claimed_coupons (
+    uuid uuid primary key,
+    coupon_uuid uuid not null,
+    client_uuid uuid not null,
+    claim_code varchar(120) not null unique,
+    status varchar(50) not null default 'CLAIMED',
+    claimed_at timestamp not null default current_timestamp,
+    used_at timestamp,
+    constraint fk_claimed_coupons_coupon
+        foreign key (coupon_uuid)
+            references coupons (uuid)
+            on delete cascade,
+    constraint fk_claimed_coupons_client
+        foreign key (client_uuid)
+            references client (uuid)
+            on delete cascade,
+    constraint uq_claimed_coupons_coupon_client
+        unique (coupon_uuid, client_uuid),
+    constraint chk_claimed_coupons_status
+        check (status in ('CLAIMED', 'USED'))
 );
 
 create table loyalty_accounts (

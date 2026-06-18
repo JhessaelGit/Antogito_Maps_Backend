@@ -83,6 +83,12 @@ public class AuditLogService {
                 "ownerUuid=" + ownerUuid + " restaurantUuid=" + restaurantUuid + " couponUuid=" + couponUuid);
     }
 
+    public void logCouponClaim(UUID clientUuid, UUID couponUuid, String claimCode) {
+        writeEvent(
+                "COUPON_CLAIM",
+                "clientUuid=" + clientUuid + " couponUuid=" + couponUuid + " claimCode=" + claimCode);
+    }
+
     private void writeEvent(String eventType, String detail) {
         String line = eventType + " | " + detail + " | fecha=" + LocalDateTime.now() + System.lineSeparator();
         try {
