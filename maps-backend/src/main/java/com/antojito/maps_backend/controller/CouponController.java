@@ -3,6 +3,7 @@ package com.antojito.maps_backend.controller;
 import com.antojito.maps_backend.dto.CouponRequest;
 import com.antojito.maps_backend.dto.CouponResponse;
 import com.antojito.maps_backend.dto.ClaimedCouponResponse;
+import com.antojito.maps_backend.dto.CouponValidationRequest;
 import com.antojito.maps_backend.dto.OwnerAuthorizationRequest;
 import com.antojito.maps_backend.service.CouponClaimService;
 import com.antojito.maps_backend.service.CouponService;
@@ -98,6 +99,25 @@ public class CouponController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .location(location)
                 .body(claimed);
+    }
+
+    @PostMapping("/restaurant/{restaurantId}/validate")
+    @Operation(summary = "Validar y usar cupon reclamado")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Cupon validado y marcado como utilizado",
+                content = @Content(mediaType = "application/json", schema = @Schema(implementation = ClaimedCouponResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Cupon no vigente o expirado"),
+        @ApiResponse(responseCode = "403", description = "Owner sin permisos sobre el restaurante"),
+        @ApiResponse(responseCode = "404", description = "Codigo invalido o no pertenece al restaurante"),
+        @ApiResponse(responseCode = "409", description = "Cupon ya utilizado")
+    })
+    public ResponseEntity<ClaimedCouponResponse> validateCoupon(
+            @Parameter(description = "UUID del restaurante")
+            @PathVariable UUID restaurantId,
+            @Valid @RequestBody CouponValidationRequest request) {
+        return ResponseEntity.ok(couponClaimService.validateAndUseCoupon(restaurantId, request));
     }
 
     @PostMapping("/restaurant/{restaurantId}")
