@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/promotion")
-@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
+@CrossOrigin(originPatterns = "${app.cors.allowed-origins:*}")
 @Tag(name = "Promotions", description = "Gestion de promociones por restaurante")
 public class PromotionController {
 
@@ -73,3 +73,4 @@ public class PromotionController {
                 .body(created);
     }
 }
+

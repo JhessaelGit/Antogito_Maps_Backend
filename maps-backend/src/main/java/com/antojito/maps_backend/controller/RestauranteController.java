@@ -31,7 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/restaurant")
-@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
+@CrossOrigin(originPatterns = "${app.cors.allowed-origins:*}")
 @Tag(name = "Restaurantes", description = "Operaciones CRUD de restaurantes")
 public class RestauranteController {
 
@@ -114,3 +114,4 @@ public class RestauranteController {
         return ResponseEntity.noContent().build();
     }
 }
+

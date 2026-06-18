@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/loyalty")
-@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
+@CrossOrigin(originPatterns = "${app.cors.allowed-origins:*}")
 @RequiredArgsConstructor
 @Tag(name = "Loyalty", description = "Gestion de fidelizacion de clientes")
 public class LoyaltyController {
@@ -39,3 +39,4 @@ public class LoyaltyController {
         return ResponseEntity.ok(response);
     }
 }
+

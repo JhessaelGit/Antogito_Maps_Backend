@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/dashboard")
-@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
+@CrossOrigin(originPatterns = "${app.cors.allowed-origins:*}")
 @RequiredArgsConstructor
 @Tag(name = "Dashboard", description = "Metricas analiticas por restaurante")
 public class DashboardController {
@@ -48,3 +48,4 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.getRestaurantDashboard(restaurantId, request));
     }
 }
+

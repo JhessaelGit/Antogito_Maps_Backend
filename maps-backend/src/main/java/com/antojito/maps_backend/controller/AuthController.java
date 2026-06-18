@@ -26,7 +26,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/restaurant")
-@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
+@CrossOrigin(originPatterns = "${app.cors.allowed-origins:*}")
 @RequiredArgsConstructor
 @Tag(name = "Restaurant Auth", description = "Autenticacion de owners de restaurantes (Firebase gestionado por el backend)")
 public class AuthController {
@@ -38,9 +38,9 @@ public class AuthController {
     @Value("${firebase.api-key}")
     private String firebaseApiKey;
 
-    // ─────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // REGISTRY: crea owner en Firebase + guarda en BD
-    // ─────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     @PostMapping("/registry")
     @Operation(summary = "Registrar owner", description = "Crea el usuario owner en Firebase y lo registra en la BD. Acepta email y password directamente.")
     public ResponseEntity<ApiMessageResponse> registry(@Valid @RequestBody ClientLoginRequest request) {
@@ -69,9 +69,9 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(new ApiMessageResponse("owner registrado"));
     }
 
-    // ─────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // LOGIN: autentica con Firebase REST + devuelve datos del owner
-    // ─────────────────────────────────────────────────────────────
+    // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     @PostMapping("/login")
     @Operation(summary = "Login de owner", description = "Autentica email y password contra Firebase y devuelve datos del owner con sus restaurantes.")
     public ResponseEntity<RestaurantLoginResponse> login(@Valid @RequestBody ClientLoginRequest request) {
@@ -138,3 +138,4 @@ public class AuthController {
         }
     }
 }
+

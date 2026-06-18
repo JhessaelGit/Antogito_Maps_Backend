@@ -19,7 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/chat")
-@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
+@CrossOrigin(originPatterns = "${app.cors.allowed-origins:*}")
 @RequiredArgsConstructor
 @ConditionalOnBean(ChatService.class)
 @Tag(name = "Chatbot", description = "Endpoints de chatbot con IA (Mistral AI)")
@@ -94,3 +94,4 @@ public class ChatController {
         return ResponseEntity.ok(chatService.listConversations());
     }
 }
+

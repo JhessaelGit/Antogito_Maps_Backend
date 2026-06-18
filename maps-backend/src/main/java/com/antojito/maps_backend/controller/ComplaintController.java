@@ -25,7 +25,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/complaint")
-@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
+@CrossOrigin(originPatterns = "${app.cors.allowed-origins:*}")
 @Tag(name = "Quejas", description = "Gestion de quejas por restaurantes o promociones")
 @RequiredArgsConstructor
 public class ComplaintController {
@@ -83,3 +83,4 @@ public class ComplaintController {
         }
     }
 }
+

@@ -36,7 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/coupon")
-@CrossOrigin(origins = "${app.cors.allowed-origins:*}")
+@CrossOrigin(originPatterns = "${app.cors.allowed-origins:*}")
 @RequiredArgsConstructor
 @Tag(name = "Coupons", description = "Gestion CRUD de cupones por restaurante")
 public class CouponController {
@@ -187,3 +187,4 @@ public class CouponController {
         }
     }
 }
+
