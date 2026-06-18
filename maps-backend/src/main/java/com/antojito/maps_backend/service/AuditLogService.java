@@ -83,6 +83,22 @@ public class AuditLogService {
                 "ownerUuid=" + ownerUuid + " restaurantUuid=" + restaurantUuid + " couponUuid=" + couponUuid);
     }
 
+    public void logCouponClaim(UUID clientUuid, UUID couponUuid, String claimCode) {
+        writeEvent(
+                "COUPON_CLAIM",
+                "clientUuid=" + clientUuid + " couponUuid=" + couponUuid + " claimCode=" + claimCode);
+    }
+
+    public void logCouponUse(UUID ownerUuid, UUID restaurantUuid, UUID couponUuid, UUID clientUuid, String claimCode) {
+        writeEvent(
+                "COUPON_USE",
+                "ownerUuid=" + ownerUuid
+                        + " restaurantUuid=" + restaurantUuid
+                        + " couponUuid=" + couponUuid
+                        + " clientUuid=" + clientUuid
+                        + " claimCode=" + claimCode);
+    }
+
     private void writeEvent(String eventType, String detail) {
         String line = eventType + " | " + detail + " | fecha=" + LocalDateTime.now() + System.lineSeparator();
         try {

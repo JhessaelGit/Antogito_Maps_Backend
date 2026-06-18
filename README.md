@@ -129,6 +129,7 @@ La documentación Swagger incluye todos los endpoints organizados por tags:
 - **Promotions** — Promociones por restaurante
 - **Loyalty** — Cuentas de fidelizacion y acumulacion de puntos
 - **Coupons** — CRUD de cupones por restaurante
+- **Dashboard** — Metricas analiticas por restaurante
 - **Chatbot** — Chatbot con IA (Mistral AI + persistencia MongoDB)
 
 ## Modelo de autenticación
@@ -289,12 +290,15 @@ Modulo conectado a la tabla `coupons`. Las operaciones de creacion, edicion, pau
 |--------|----------|-----------------|-------------|
 | `GET` | `/coupon/restaurant/{restaurantId}` | `coupons` | Lista todos los cupones de un restaurante |
 | `GET` | `/coupon/restaurant/{restaurantId}/{couponId}` | `coupons` | Obtiene un cupon especifico del restaurante |
+| `GET` | `/coupon/client/claimed` | `claimed_coupons` | Lista los cupones reclamados por el cliente autenticado |
+| `POST` | `/coupon/{couponId}/claim` | `claimed_coupons` | Permite que un cliente reclame un cupon disponible |
+| `POST` | `/coupon/restaurant/{restaurantId}/validate` | `claimed_coupons` | Valida el codigo unico y marca el cupon como utilizado |
 | `POST` | `/coupon/restaurant/{restaurantId}` | `coupons` | Crea un cupon para el restaurante |
 | `PUT` | `/coupon/restaurant/{restaurantId}/{couponId}` | `coupons` | Edita un cupon existente |
 | `PATCH` | `/coupon/restaurant/{restaurantId}/{couponId}/pause` | `coupons` | Pausa un cupon cambiando su estado a `PAUSED` |
 | `DELETE` | `/coupon/restaurant/{restaurantId}/{couponId}` | `coupons` | Elimina un cupon |
 
-Tablas relacionadas: `coupons`, `restaurant`, `client`, `owner_account`, `owner_restaurant`.
+Tablas relacionadas: `coupons`, `claimed_coupons`, `restaurant`, `client`, `owner_account`, `owner_restaurant`.
 
 Body para crear o editar:
 
@@ -353,6 +357,124 @@ Reglas implementadas:
 - No se permite crear o editar con estado `EXPIRED` o `SOLD_OUT`.
 - Acciones criticas registradas en `registro.log`: creacion, edicion, pausa y eliminacion.
 
+#### Reclamo de cupones (Rol Cliente)
+
+El cliente reclama un cupon enviando su UUID en el header `X-Client-Id`.
+
+```http
+POST /coupon/{couponId}/claim
+X-Client-Id: 5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9
+```
+
+Response:
+
+```json
+{
+  "uuid": "c3e5d321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "couponId": "6f03af25-8da3-4258-b0b6-16e82fd417f0",
+  "restaurantId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "clientId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "claimCode": "CPN-ABC123DEF4567890",
+  "status": "CLAIMED",
+  "couponName": "Descuento de bienvenida",
+  "couponDescription": "Valido en compras mayores a 50 Bs",
+  "expirationDate": "2026-06-30",
+  "claimedAt": "2026-06-17T20:00:00",
+  "usedAt": null
+}
+```
+
+Para listar los cupones reclamados por el cliente:
+
+```http
+GET /coupon/client/claimed
+X-Client-Id: 5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9
+```
+
+Reglas implementadas:
+- El cliente debe existir en `client`.
+- El cupon debe existir y estar en estado `ACTIVE`.
+- El cupon debe estar vigente (`startDate` y `expirationDate`).
+- No se permite reclamar el mismo cupon dos veces por el mismo cliente.
+- Se respeta `maxQuantity`; si se alcanza el limite, el cupon cambia a `SOLD_OUT`.
+- Se genera `claimCode` unico para QR/codigo.
+- El reclamo queda en `claimed_coupons` con estado `CLAIMED`.
+
+#### Validacion y uso de cupones (Rol Restaurante)
+
+El restaurante valida el codigo unico generado en el reclamo. Si es valido, el reclamo cambia a `USED`.
+
+```http
+POST /coupon/restaurant/{restaurantId}/validate
+```
+
+Body:
+
+```json
+{
+  "ownerUuid": "20a63174-3799-4e7f-98c7-7f2af9e2c42c",
+  "claimCode": "CPN-ABC123DEF4567890"
+}
+```
+
+Response: mismo schema de cupon reclamado, con `status: "USED"` y `usedAt` con fecha de uso.
+
+Reglas implementadas:
+- El restaurante debe existir.
+- El owner debe existir y pertenecer al restaurante.
+- El `claimCode` debe existir en `claimed_coupons`.
+- El codigo debe pertenecer a un cupon del restaurante indicado.
+- No se permite reutilizar un cupon ya usado.
+- El cupon debe estar vigente.
+- Si todo es correcto, actualiza `claimed_coupons.status = USED` y registra `used_at`.
+- Accion registrada en `registro.log` como `COUPON_USE`.
+
+### Dashboard Analitico
+
+Modulo de metricas conectado a `coupons`, `claimed_coupons`, `promotions`, `restaurant`, `owner_account` y `owner_restaurant`.
+
+| Metodo | Endpoint | Descripcion |
+|--------|----------|-------------|
+| `POST` | `/dashboard/restaurant/{restaurantId}` | Devuelve metricas analiticas del restaurante |
+
+Body:
+
+```json
+{
+  "ownerUuid": "20a63174-3799-4e7f-98c7-7f2af9e2c42c"
+}
+```
+
+Tambien se puede usar `ownerMail`.
+
+Response:
+
+```json
+{
+  "restaurantId": "5ec5e321-5fa1-4a4b-9370-0d9f8cfa8ca9",
+  "activeCoupons": 3,
+  "totalClaimedCoupons": 20,
+  "totalUsedCoupons": 12,
+  "recurringClients": 4,
+  "expiredPromotions": 2,
+  "topUsedCoupons": [
+    {
+      "couponId": "6f03af25-8da3-4258-b0b6-16e82fd417f0",
+      "couponName": "Descuento de bienvenida",
+      "totalUsed": 8
+    }
+  ]
+}
+```
+
+Metricas calculadas:
+- `activeCoupons`: cupones `ACTIVE` dentro de vigencia.
+- `totalClaimedCoupons`: total de reclamos en `claimed_coupons`.
+- `totalUsedCoupons`: total con `claimed_coupons.status = USED`.
+- `recurringClients`: clientes con mas de 1 cupon usado.
+- `expiredPromotions`: promociones con `date_end_promotion < current_date`.
+- `topUsedCoupons`: ranking de cupones usados por `GROUP BY` y `COUNT`.
+
 ### Chatbot con IA
 
 > Las conversaciones se persisten en **MongoDB** vinculadas al `X-Client-Id` del cliente. Usuarios anónimos también pueden chatear (sin persistencia por usuario).
@@ -410,6 +532,7 @@ maps-backend/
 │   │   ├── ClientController.java     # Auth de clientes
 │   │   ├── ComplaintController.java  # Quejas
 │   │   ├── CouponController.java     # CRUD cupones
+│   │   ├── DashboardController.java  # Dashboard analitico
 │   │   ├── LoyaltyController.java    # Fidelizacion
 │   │   ├── PromotionController.java  # Promociones
 │   │   ├── RestauranteController.java# CRUD restaurantes
@@ -423,7 +546,9 @@ maps-backend/
 │   │   ├── AuditLogService.java
 │   │   ├── ChatService.java
 │   │   ├── ComplaintService.java
+│   │   ├── CouponClaimService.java
 │   │   ├── CouponService.java
+│   │   ├── DashboardService.java
 │   │   ├── LoyaltyService.java
 │   │   ├── PromotionService.java
 │   │   ├── R2StorageService.java

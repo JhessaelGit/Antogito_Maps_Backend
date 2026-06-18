@@ -2,7 +2,10 @@ package com.antojito.maps_backend.controller;
 
 import com.antojito.maps_backend.dto.CouponRequest;
 import com.antojito.maps_backend.dto.CouponResponse;
+import com.antojito.maps_backend.dto.ClaimedCouponResponse;
+import com.antojito.maps_backend.dto.CouponValidationRequest;
 import com.antojito.maps_backend.dto.OwnerAuthorizationRequest;
+import com.antojito.maps_backend.service.CouponClaimService;
 import com.antojito.maps_backend.service.CouponService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -26,8 +29,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/coupon")
@@ -36,7 +41,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Coupons", description = "Gestion CRUD de cupones por restaurante")
 public class CouponController {
 
+    private static final String HEADER_CLIENT_ID = "X-Client-Id";
     private final CouponService couponService;
+    private final CouponClaimService couponClaimService;
 
     @GetMapping("/restaurant/{restaurantId}")
     @Operation(summary = "Listar cupones por restaurante")
@@ -61,6 +68,56 @@ public class CouponController {
             @Parameter(description = "UUID del cupon")
             @PathVariable UUID couponId) {
         return ResponseEntity.ok(couponService.findById(restaurantId, couponId));
+    }
+
+    @GetMapping("/client/claimed")
+    @Operation(summary = "Listar cupones reclamados por el cliente")
+    public ResponseEntity<List<ClaimedCouponResponse>> getClaimedCouponsByClient(
+            @RequestHeader(HEADER_CLIENT_ID) String clientIdHeader) {
+        UUID clientId = parseRequiredUuid(clientIdHeader, HEADER_CLIENT_ID);
+        return ResponseEntity.ok(couponClaimService.findClaimedByClient(clientId));
+    }
+
+    @PostMapping("/{couponId}/claim")
+    @Operation(summary = "Reclamar cupon como cliente")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "201",
+                description = "Cupon reclamado correctamente",
+                content = @Content(mediaType = "application/json", schema = @Schema(implementation = ClaimedCouponResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Cupon no vigente, expirado o sin disponibilidad"),
+        @ApiResponse(responseCode = "404", description = "No existe cliente o cupon"),
+        @ApiResponse(responseCode = "409", description = "El cliente ya reclamo este cupon")
+    })
+    public ResponseEntity<ClaimedCouponResponse> claimCoupon(
+            @RequestHeader(HEADER_CLIENT_ID) String clientIdHeader,
+            @Parameter(description = "UUID del cupon")
+            @PathVariable UUID couponId) {
+        UUID clientId = parseRequiredUuid(clientIdHeader, HEADER_CLIENT_ID);
+        ClaimedCouponResponse claimed = couponClaimService.claimCoupon(clientId, couponId);
+        URI location = URI.create("/coupon/client/claimed");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .location(location)
+                .body(claimed);
+    }
+
+    @PostMapping("/restaurant/{restaurantId}/validate")
+    @Operation(summary = "Validar y usar cupon reclamado")
+    @ApiResponses({
+        @ApiResponse(
+                responseCode = "200",
+                description = "Cupon validado y marcado como utilizado",
+                content = @Content(mediaType = "application/json", schema = @Schema(implementation = ClaimedCouponResponse.class))),
+        @ApiResponse(responseCode = "400", description = "Cupon no vigente o expirado"),
+        @ApiResponse(responseCode = "403", description = "Owner sin permisos sobre el restaurante"),
+        @ApiResponse(responseCode = "404", description = "Codigo invalido o no pertenece al restaurante"),
+        @ApiResponse(responseCode = "409", description = "Cupon ya utilizado")
+    })
+    public ResponseEntity<ClaimedCouponResponse> validateCoupon(
+            @Parameter(description = "UUID del restaurante")
+            @PathVariable UUID restaurantId,
+            @Valid @RequestBody CouponValidationRequest request) {
+        return ResponseEntity.ok(couponClaimService.validateAndUseCoupon(restaurantId, request));
     }
 
     @PostMapping("/restaurant/{restaurantId}")
@@ -117,5 +174,16 @@ public class CouponController {
             @Valid @RequestBody OwnerAuthorizationRequest request) {
         couponService.delete(restaurantId, couponId, request);
         return ResponseEntity.noContent().build();
+    }
+
+    private UUID parseRequiredUuid(String rawUuid, String headerName) {
+        if (rawUuid == null || rawUuid.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, headerName + " requerido");
+        }
+        try {
+            return UUID.fromString(rawUuid.trim());
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, headerName + " invalido");
+        }
     }
 }
