@@ -5,8 +5,6 @@ import com.antojito.maps_backend.dto.ClientLoginRequest;
 import com.antojito.maps_backend.dto.RestaurantLoginResponse;
 import com.antojito.maps_backend.dto.RestaurantLogoutRequest;
 import com.antojito.maps_backend.service.AuditLogService;
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.UserRecord;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -18,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -55,20 +54,7 @@ public class AuthController {
             // No existe => continuar
         }
 
-        // 2. Crear en Firebase Admin SDK
-        try {
-            UserRecord.CreateRequest createReq = new UserRecord.CreateRequest()
-                    .setEmail(email)
-                    .setPassword(request.getPassword());
-            FirebaseAuth.getInstance().createUser(createReq);
-        } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "";
-            if (msg.contains("EMAIL_EXISTS") || msg.contains("email-already-exists")) {
-                // El usuario ya existe en Firebase pero no en nuestra BD, lo registramos igual
-            } else {
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al crear usuario en Firebase: " + msg);
-            }
-        }
+        createFirebaseUser(email, request.getPassword());
 
         // 3. Insertar en BD
         try {
@@ -123,5 +109,32 @@ public class AuthController {
     public ResponseEntity<ApiMessageResponse> logout(@Valid @RequestBody RestaurantLogoutRequest request) {
         auditLogService.logLogout(request.getMail());
         return ResponseEntity.ok(new ApiMessageResponse("logout registrado"));
+    }
+
+    private void createFirebaseUser(String email, String password) {
+        String firebaseUrl = "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + firebaseApiKey;
+        try {
+            restTemplate.postForEntity(
+                    firebaseUrl,
+                    Map.of("email", email, "password", password, "returnSecureToken", true),
+                    Map.class);
+        } catch (HttpClientErrorException exception) {
+            String responseBody = exception.getResponseBodyAsString();
+            if (responseBody.contains("EMAIL_EXISTS")) {
+                return;
+            }
+            if (responseBody.contains("WEAK_PASSWORD")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contrasena debe tener al menos 6 caracteres");
+            }
+            if (responseBody.contains("INVALID_EMAIL")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El correo no tiene formato valido");
+            }
+            if (responseBody.contains("OPERATION_NOT_ALLOWED")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El registro con email y contrasena no esta habilitado en Firebase");
+            }
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se pudo crear el usuario en Firebase");
+        } catch (Exception exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo conectar con Firebase");
+        }
     }
 }

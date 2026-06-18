@@ -75,3 +75,13 @@ LOGIN | email=douglasdfmc@gmail.com | fecha=2026-05-12T15:57:40.861004800
 LOGIN | email=douglasdfmc@gmail.com | fecha=2026-05-12T15:58:51.254876100
 LOGIN | email=cliente1@test.com | fecha=2026-05-19T17:15:18.312443500
 ADMIN_LOGIN | mail=admin@antojitos.com | fecha=2026-05-19T17:16:02.719479
+LOGIN | email=sushizen@test.com | fecha=2026-06-17T21:46:43.104952
+LOGIN | email=sushizen@test.com | fecha=2026-06-17T21:54:06.097434100
+LOGIN | email=sushizen@test.com | fecha=2026-06-17T21:55:56.369117500
+LOGIN | email=sushizen@test.com | fecha=2026-06-17T21:58:20.665412300
+LOGIN | email=salteneria@test.com | fecha=2026-06-17T21:59:30.899127200
+OWNER_REGISTRO | mail=saltenas@gmail.com | fecha=2026-06-17T23:00:30.305646400
+OWNER_REGISTRO | mail=saltena@gmail.com | fecha=2026-06-17T23:05:43.688423100
+RESTAURANTE_REGISTRO | uuid=076c2b50-177e-41c1-a1a7-0fd01ec87ad5 name=Salteñas wistupicu | fecha=2026-06-17T23:05:44.665457700
+OWNER_REGISTRY | restaurantUuid=076c2b50-177e-41c1-a1a7-0fd01ec87ad5 mail=saltena@gmail.com | fecha=2026-06-17T23:05:44.665457700
+LOGIN | email=saltena@gmail.com | fecha=2026-06-17T23:06:17.035612700

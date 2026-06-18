@@ -2,6 +2,8 @@ package com.antojito.maps_backend.service;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +33,7 @@ public class R2StorageService {
     private final String accessKeyId;
     private final String secretAccessKey;
     private final boolean uploadEnabled;
+    private final String publicBaseUrlForLocalUploads;
 
     private volatile S3Client s3Client;
 
@@ -41,7 +44,8 @@ public class R2StorageService {
             @Value("${app.r2.public-base-url:}") String explicitPublicBaseUrl,
             @Value("${app.r2.access-key-id:}") String accessKeyId,
             @Value("${app.r2.secret-access-key:}") String secretAccessKey,
-            @Value("${app.r2.upload-enabled:true}") boolean uploadEnabled) {
+            @Value("${app.r2.upload-enabled:true}") boolean uploadEnabled,
+            @Value("${app.public-base-url:http://localhost:8080}") String publicBaseUrlForLocalUploads) {
         ParsedR2Config parsed = parseS3ApiUrl(s3ApiUrl);
 
         this.restClient = RestClient.create();
@@ -53,6 +57,7 @@ public class R2StorageService {
         this.accessKeyId = accessKeyId;
         this.secretAccessKey = secretAccessKey;
         this.uploadEnabled = uploadEnabled;
+        this.publicBaseUrlForLocalUploads = trimTrailingSlash(publicBaseUrlForLocalUploads);
     }
 
     public String ensureR2ImageUrl(String currentImageUrl, String fallbackSourceUrl, String imageName) {
@@ -73,15 +78,29 @@ public class R2StorageService {
     }
 
     public String uploadMultipartImage(String imageName, String originalFilename, String contentType, byte[] content) {
-        if (!uploadEnabled || !isConfiguredForUpload()) {
-            throw new IllegalStateException("R2 no esta configurado para subida de imagenes");
-        }
         if (content == null || content.length == 0) {
             throw new IllegalArgumentException("Imagen vacia");
         }
 
         String fallbackName = hasText(originalFilename) ? originalFilename : "imagen.jpg";
+        if (!uploadEnabled || !isConfiguredForUpload()) {
+            return saveLocalImage(content, contentType, imageName, fallbackName);
+        }
         return uploadBytesOrFallback(content, contentType, imageName, fallbackName);
+    }
+
+    private String saveLocalImage(byte[] content, String contentType, String imageName, String fallbackValue) {
+        try {
+            String extension = resolveExtension(contentType, fallbackValue);
+            String fileName = toSlug(imageName) + "-" + UUID.randomUUID() + extension;
+            Path uploadDirectory = Path.of("uploads", DEFAULT_OBJECT_PREFIX).toAbsolutePath().normalize();
+            Files.createDirectories(uploadDirectory);
+            Files.write(uploadDirectory.resolve(fileName), content);
+            return publicBaseUrlForLocalUploads + "/uploads/" + DEFAULT_OBJECT_PREFIX + "/" + fileName;
+        } catch (Exception exception) {
+            log.warn("No se pudo guardar imagen local de '{}': {}", imageName, exception.getMessage());
+            throw new IllegalStateException("No se pudo guardar la imagen localmente");
+        }
     }
 
     private String uploadImageOrFallback(String sourceUrl, String imageName) {
