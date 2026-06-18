@@ -59,6 +59,30 @@ public class AuditLogService {
                 "uuid=" + uuid + " name=" + name);
     }
 
+    public void logCouponCreate(UUID ownerUuid, UUID restaurantUuid, UUID couponUuid) {
+        writeEvent(
+                "COUPON_CREATE",
+                "ownerUuid=" + ownerUuid + " restaurantUuid=" + restaurantUuid + " couponUuid=" + couponUuid);
+    }
+
+    public void logCouponUpdate(UUID ownerUuid, UUID restaurantUuid, UUID couponUuid) {
+        writeEvent(
+                "COUPON_UPDATE",
+                "ownerUuid=" + ownerUuid + " restaurantUuid=" + restaurantUuid + " couponUuid=" + couponUuid);
+    }
+
+    public void logCouponPause(UUID ownerUuid, UUID restaurantUuid, UUID couponUuid) {
+        writeEvent(
+                "COUPON_PAUSE",
+                "ownerUuid=" + ownerUuid + " restaurantUuid=" + restaurantUuid + " couponUuid=" + couponUuid);
+    }
+
+    public void logCouponDelete(UUID ownerUuid, UUID restaurantUuid, UUID couponUuid) {
+        writeEvent(
+                "COUPON_DELETE",
+                "ownerUuid=" + ownerUuid + " restaurantUuid=" + restaurantUuid + " couponUuid=" + couponUuid);
+    }
+
     private void writeEvent(String eventType, String detail) {
         String line = eventType + " | " + detail + " | fecha=" + LocalDateTime.now() + System.lineSeparator();
         try {
