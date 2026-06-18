@@ -85,3 +85,7 @@ OWNER_REGISTRO | mail=saltena@gmail.com | fecha=2026-06-17T23:05:43.688423100
 RESTAURANTE_REGISTRO | uuid=076c2b50-177e-41c1-a1a7-0fd01ec87ad5 name=Salteñas wistupicu | fecha=2026-06-17T23:05:44.665457700
 OWNER_REGISTRY | restaurantUuid=076c2b50-177e-41c1-a1a7-0fd01ec87ad5 mail=saltena@gmail.com | fecha=2026-06-17T23:05:44.665457700
 LOGIN | email=saltena@gmail.com | fecha=2026-06-17T23:06:17.035612700
+LOGIN | email=saltena@gmail.com | fecha=2026-06-18T11:06:49.654656400
+COUPON_CREATE | ownerUuid=236b8def-89c8-4a2c-a4d0-29e7ce19d409 restaurantUuid=076c2b50-177e-41c1-a1a7-0fd01ec87ad5 couponUuid=6377ec74-2e0e-4837-9165-39d5f3b3e719 | fecha=2026-06-18T11:07:24.869443
+COUPON_CREATE | ownerUuid=236b8def-89c8-4a2c-a4d0-29e7ce19d409 restaurantUuid=076c2b50-177e-41c1-a1a7-0fd01ec87ad5 couponUuid=42666fca-dc24-4617-9557-398872469719 | fecha=2026-06-18T11:07:30.268732
+LOGIN | email=saltena@gmail.com | fecha=2026-06-18T12:44:04.543484400
